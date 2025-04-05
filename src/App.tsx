@@ -15,6 +15,7 @@ import CampusMap from "./pages/CampusMap";
 import Events from "./pages/Events";
 import Clubs from "./pages/Clubs";
 import NoticeBoard from "./pages/NoticeBoard";
+import UserDashboard from "./pages/UserDashboard";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -50,17 +51,26 @@ const App = () => (
               <Route path="/notice-board" element={<NoticeBoard />} />
               <Route path="/login" element={<Login />} />
               
-              {/* Admin Routes */}
+              {/* Student Protected Routes */}
+              <Route element={<ProtectedRoute requiredRole="student" />}>
+                <Route path="/user/dashboard" element={<UserDashboard />} />
+              </Route>
+              
+              {/* Admin and Club Admin Routes */}
               <Route element={<ProtectedRoute />}>
+                <Route path="/admin/campus-activities" element={<AdminCampusActivities />} />
+                <Route path="/admin/clubs" element={<AdminClubs />} />
+                <Route path="/admin/notices" element={<AdminNotices />} />
+              </Route>
+              
+              {/* Admin-only Routes */}
+              <Route element={<ProtectedRoute requiredRole="admin" />}>
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
                 <Route path="/admin/bus-schedule" element={<AdminBusSchedule />} />
-                <Route path="/admin/campus-activities" element={<AdminCampusActivities />} />
                 <Route path="/admin/mess-menu" element={<AdminMessMenu />} />
                 <Route path="/admin/food-outlets" element={<AdminFoodOutlets />} />
                 <Route path="/admin/campus-map" element={<AdminCampusMap />} />
                 <Route path="/admin/manage-admins" element={<AdminManagement />} />
-                <Route path="/admin/clubs" element={<AdminClubs />} />
-                <Route path="/admin/notices" element={<AdminNotices />} />
               </Route>
               
               <Route path="*" element={<NotFound />} />

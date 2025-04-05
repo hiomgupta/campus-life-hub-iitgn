@@ -50,9 +50,22 @@ const EventCalendar = ({ events }: EventCalendarProps) => {
     toast.success("Event added to Google Calendar");
   };
 
-  // Function to find dates with events for highlighting in the calendar
-  const getDatesWithEvents = () => {
-    return Object.keys(eventsByDate).map(dateStr => new Date(dateStr));
+  // Get modifiers for dates with events to style them in the calendar
+  const getModifiers = () => {
+    const datesWithEvents = Object.keys(eventsByDate).map(dateStr => new Date(dateStr));
+    
+    return {
+      hasEvent: datesWithEvents
+    };
+  };
+
+  // Style for dates with events
+  const modifiersStyles = {
+    hasEvent: {
+      fontWeight: 'bold',
+      color: 'var(--primary)',
+      backgroundColor: 'var(--primary/10)'
+    }
   };
 
   return (
@@ -71,7 +84,8 @@ const EventCalendar = ({ events }: EventCalendarProps) => {
               selected={selectedDate}
               onSelect={setSelectedDate}
               className="rounded-md border"
-              highlightedDates={getDatesWithEvents()}
+              modifiers={getModifiers()}
+              modifiersStyles={modifiersStyles}
             />
           </div>
           <div className="p-4">
@@ -93,6 +107,9 @@ const EventCalendar = ({ events }: EventCalendarProps) => {
                         <h4 className="font-medium text-sm">{event.title}</h4>
                         <p className="text-xs text-muted-foreground">
                           {`${event.time} • ${event.location}`}
+                          {event.addedBy && (
+                            <span> • Added by: {event.addedBy}</span>
+                          )}
                         </p>
                       </div>
                       <Button 

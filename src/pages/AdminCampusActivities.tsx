@@ -1,282 +1,614 @@
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2, Edit } from "lucide-react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { format } from "date-fns";
 import { toast } from "sonner";
+import { Calendar as CalendarIcon, PlusCircle, Pencil, Trash2, Eye, CalendarRange, Image as ImageIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CampusActivity } from "@/types";
 
-// Sample initial data
-const initialCampusActivities: CampusActivity[] = [
-  {
-    id: "1",
-    title: "Tech Club Meeting",
-    description: "Weekly meeting of the technology club to discuss ongoing projects",
-    date: "2025-04-05",
-    time: "17:00",
-    location: "Student Activity Center",
-    category: "club"
-  },
-  {
-    id: "2",
-    title: "Cultural Night",
-    description: "Annual cultural night featuring performances from various student groups",
-    date: "2025-04-10",
-    time: "19:00",
-    location: "Auditorium",
-    category: "event"
-  },
-  {
-    id: "3",
-    title: "Guest Lecture: AI Advancements",
-    description: "Special lecture by Dr. Jane Smith on recent advancements in AI",
-    date: "2025-04-12",
-    time: "10:00",
-    location: "Lecture Hall 1",
-    category: "lecture"
-  }
-];
+const FormSchema = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters"),
+  description: z.string().min(10, "Description must be at least 10 characters"),
+  date: z.date({
+    required_error: "Please select a date",
+  }),
+  time: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Time must be in 24-hour format (HH:MM)"),
+  location: z.string().min(3, "Location must be at least 3 characters"),
+  category: z.string().min(1, "Please select a category"),
+  imageUrl: z.string().optional(),
+});
 
 const AdminCampusActivities = () => {
   const navigate = useNavigate();
+  
   const [activities, setActivities] = useState<CampusActivity[]>([]);
+  const [editingActivity, setEditingActivity] = useState<CampusActivity | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [currentActivity, setCurrentActivity] = useState<CampusActivity>({
-    id: "",
-    title: "",
-    description: "",
-    date: "",
-    time: "",
-    location: "",
-    category: "event"
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [activityToDelete, setActivityToDelete] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [clubId, setClubId] = useState<string | null>(null);
+  const [clubName, setClubName] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isSchedulingTab, setIsSchedulingTab] = useState<boolean>(true);
+  
+  const form = useForm<z.infer<typeof FormSchema>>({
+    resolver: zodResolver(FormSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      date: new Date(),
+      time: "18:00",
+      location: "",
+      category: "",
+      imageUrl: "",
+    },
   });
-  const [isEditing, setIsEditing] = useState(false);
   
   useEffect(() => {
-    // Load data from localStorage or use initial data
+    // Check if user is authenticated
+    const role = localStorage.getItem("user_role");
+    const email = localStorage.getItem("admin_email");
+    const storedClubId = localStorage.getItem("club_id");
+    const storedClubName = localStorage.getItem("club_name");
+    
+    if (!email) {
+      navigate("/login");
+      return;
+    }
+    
+    setUserRole(role);
+    setUserEmail(email);
+    setClubId(storedClubId);
+    setClubName(storedClubName);
+    
+    // Load existing activities
     const storedData = localStorage.getItem("campus_activities_data");
+    
     if (storedData) {
       setActivities(JSON.parse(storedData));
-    } else {
-      setActivities(initialCampusActivities);
     }
-  }, []);
-
-  const handleSaveActivity = () => {
-    if (isEditing) {
+    
+    // Reset form when the dialog is closed
+    if (!isDialogOpen) {
+      form.reset({
+        title: "",
+        description: "",
+        date: new Date(),
+        time: "18:00",
+        location: "",
+        category: "",
+        imageUrl: "",
+      });
+      setEditingActivity(null);
+      setImagePreview(null);
+    }
+  }, [navigate, isDialogOpen, form]);
+  
+  const onSubmit = (data: z.infer<typeof FormSchema>) => {
+    const activityData = {
+      ...data,
+      id: editingActivity?.id || Math.random().toString(),
+      date: format(data.date, "yyyy-MM-dd"),
+      addedBy: userEmail || "admin@iitgn.ac.in",
+      clubId: clubId || undefined,
+      clubName: clubName || undefined,
+    };
+    
+    if (editingActivity) {
       // Update existing activity
-      setActivities(activities.map(activity => 
-        activity.id === currentActivity.id ? currentActivity : activity
-      ));
+      const updatedActivities = activities.map((activity) =>
+        activity.id === editingActivity.id ? activityData : activity
+      );
+      setActivities(updatedActivities);
+      localStorage.setItem("campus_activities_data", JSON.stringify(updatedActivities));
+      toast.success("Activity updated successfully");
     } else {
       // Add new activity
-      const newActivity: CampusActivity = {
-        ...currentActivity,
-        id: `activity-${Date.now()}`
-      };
-      setActivities([...activities, newActivity]);
+      const newActivities = [...activities, activityData];
+      setActivities(newActivities);
+      localStorage.setItem("campus_activities_data", JSON.stringify(newActivities));
+      toast.success("Activity added successfully");
+      
+      // Create notifications for all users (in a real app this would go to specific users)
+      createNotification({
+        title: "New Event Added",
+        message: `${clubName || 'Admin'} just added a new event: ${data.title}`,
+        type: "event",
+        relatedId: activityData.id
+      });
     }
     
-    // Save to localStorage
-    localStorage.setItem("campus_activities_data", JSON.stringify(
-      isEditing 
-        ? activities.map(activity => activity.id === currentActivity.id ? currentActivity : activity)
-        : [...activities, {...currentActivity, id: `activity-${Date.now()}`}]
-    ));
-    
-    toast.success(isEditing ? "Activity updated successfully" : "Activity added successfully");
-    resetForm();
     setIsDialogOpen(false);
   };
 
-  const editActivity = (activity: CampusActivity) => {
-    setCurrentActivity(activity);
-    setIsEditing(true);
+  const createNotification = (notificationData: {
+    title: string;
+    message: string;
+    type: "event" | "notice" | "reminder" | "urgent";
+    relatedId?: string;
+  }) => {
+    // In a real app, we would create notifications for specific users
+    // but for this demo, we'll create them for the current user
+    const userId = localStorage.getItem("user_email") || "";
+    if (!userId) return;
+    
+    const storedNotifications = localStorage.getItem(`notifications_${userId}`);
+    let notifications = storedNotifications ? JSON.parse(storedNotifications) : [];
+    
+    const newNotification = {
+      id: Math.random().toString(),
+      userId,
+      ...notificationData,
+      date: new Date().toISOString(),
+      read: false
+    };
+    
+    notifications = [newNotification, ...notifications];
+    localStorage.setItem(`notifications_${userId}`, JSON.stringify(notifications));
+  };
+  
+  const handleEditActivity = (activity: CampusActivity) => {
+    // Populate the form with existing data
+    form.reset({
+      title: activity.title,
+      description: activity.description,
+      date: new Date(activity.date),
+      time: activity.time,
+      location: activity.location,
+      category: activity.category,
+      imageUrl: activity.imageUrl || "",
+    });
+    
+    if (activity.imageUrl) {
+      setImagePreview(activity.imageUrl);
+    }
+    
+    setEditingActivity(activity);
     setIsDialogOpen(true);
   };
-
-  const deleteActivity = (id: string) => {
-    const updatedActivities = activities.filter(activity => activity.id !== id);
-    setActivities(updatedActivities);
-    localStorage.setItem("campus_activities_data", JSON.stringify(updatedActivities));
-    toast.success("Activity deleted successfully");
+  
+  const handleDeleteActivity = (id: string) => {
+    setActivityToDelete(id);
+    setIsDeleteDialogOpen(true);
   };
-
-  const resetForm = () => {
-    setCurrentActivity({
-      id: "",
-      title: "",
-      description: "",
-      date: "",
-      time: "",
-      location: "",
-      category: "event"
-    });
-    setIsEditing(false);
+  
+  const confirmDeleteActivity = () => {
+    if (activityToDelete) {
+      const updatedActivities = activities.filter((activity) => activity.id !== activityToDelete);
+      setActivities(updatedActivities);
+      localStorage.setItem("campus_activities_data", JSON.stringify(updatedActivities));
+      toast.success("Activity deleted successfully");
+      setIsDeleteDialogOpen(false);
+    }
   };
-
-  const handleDialogClose = (open: boolean) => {
-    setIsDialogOpen(open);
-    if (!open) resetForm();
+  
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    
+    if (file) {
+      // In a real app, you would upload this file to a server
+      // Here we're just using a local URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const imageUrl = reader.result as string;
+        setImagePreview(imageUrl);
+        form.setValue("imageUrl", imageUrl);
+      };
+      reader.readAsDataURL(file);
+    }
   };
+  
+  // Filter activities for club admins to only show their club activities
+  const filteredActivities = userRole === "clubAdmin" && clubId 
+    ? activities.filter(activity => activity.clubId === clubId)
+    : activities;
 
   return (
-    <div className="container py-8 space-y-6">
-      <div className="flex items-center">
-        <Button
-          variant="ghost" 
-          size="icon" 
-          className="mr-2"
-          onClick={() => navigate("/admin/dashboard")}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">What's On Campus</h1>
-          <p className="text-muted-foreground">
-            Manage campus activities and events
-          </p>
+    <div className="space-y-6">
+      <div className="flex flex-col space-y-2">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold tracking-tight">Campus Activities</h1>
+          <Button onClick={() => setIsDialogOpen(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add New Activity
+          </Button>
         </div>
+        <p className="text-muted-foreground">
+          Manage events and activities on campus
+        </p>
       </div>
-
-      <div className="flex justify-end">
-        <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setIsDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add New Activity
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{isEditing ? "Edit Activity" : "Add New Activity"}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div>
-                <label className="text-sm font-medium mb-1 block">Title</label>
-                <Input 
-                  placeholder="Activity title"
-                  value={currentActivity.title}
-                  onChange={(e) => setCurrentActivity({...currentActivity, title: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium mb-1 block">Description</label>
-                <Textarea 
-                  placeholder="Activity description"
-                  value={currentActivity.description}
-                  onChange={(e) => setCurrentActivity({...currentActivity, description: e.target.value})}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Date</label>
-                  <Input 
-                    type="date"
-                    value={currentActivity.date}
-                    onChange={(e) => setCurrentActivity({...currentActivity, date: e.target.value})}
+      
+      <Tabs defaultValue="list" onValueChange={(value) => setIsSchedulingTab(value === "calendar")}>
+        <TabsList>
+          <TabsTrigger value="list">List View</TabsTrigger>
+          <TabsTrigger value="calendar">Calendar View</TabsTrigger>
+        </TabsList>
+        <TabsContent value="list">
+          <Card>
+            <CardHeader>
+              <CardTitle>All Activities</CardTitle>
+              <CardDescription>
+                {userRole === "clubAdmin" 
+                  ? `Showing activities for ${clubName || "your club"}` 
+                  : "Showing all campus activities"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {filteredActivities.length === 0 ? (
+                <Alert>
+                  <AlertTitle>No activities found</AlertTitle>
+                  <AlertDescription>
+                    Add your first campus activity by clicking the "Add New Activity" button.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Date & Time</TableHead>
+                        <TableHead>Location</TableHead>
+                        <TableHead>Category</TableHead>
+                        {userRole === "admin" && <TableHead>Added By</TableHead>}
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredActivities.map((activity) => {
+                        const eventDate = new Date(activity.date);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const isPast = eventDate < today;
+                        
+                        return (
+                          <TableRow key={activity.id} className={isPast ? "opacity-60" : ""}>
+                            <TableCell className="font-medium">
+                              <div className="flex flex-col">
+                                {activity.title}
+                                {activity.imageUrl && (
+                                  <span className="text-xs text-muted-foreground flex items-center mt-1">
+                                    <ImageIcon className="h-3 w-3 mr-1" />
+                                    Has image
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span className="font-medium">{format(new Date(activity.date), "PPP")}</span>
+                                <span className="text-xs text-muted-foreground">{activity.time}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>{activity.location}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="capitalize">
+                                {activity.category}
+                              </Badge>
+                            </TableCell>
+                            {userRole === "admin" && (
+                              <TableCell>
+                                {activity.clubName || activity.addedBy?.split('@')[0] || "Admin"}
+                              </TableCell>
+                            )}
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => handleEditActivity(activity)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => handleDeleteActivity(activity.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => navigate("/events")}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="calendar">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <CalendarRange className="mr-2 h-5 w-5" />
+                Activity Calendar View
+              </CardTitle>
+              <CardDescription>
+                {userRole === "clubAdmin" 
+                  ? `Calendar of activities for ${clubName || "your club"}` 
+                  : "Calendar of all campus activities"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-center p-4">
+                <div className="w-full max-w-md">
+                  <Calendar
+                    mode="single"
+                    selected={new Date()}
+                    className="rounded-md border"
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Time</label>
-                  <Input 
-                    type="time"
-                    value={currentActivity.time}
-                    onChange={(e) => setCurrentActivity({...currentActivity, time: e.target.value})}
-                  />
+              </div>
+              <div className="mt-4">
+                <h3 className="font-medium mb-2">Upcoming Activities</h3>
+                <div className="space-y-2">
+                  {filteredActivities
+                    .filter(activity => new Date(activity.date) >= new Date())
+                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                    .slice(0, 5)
+                    .map(activity => (
+                      <div key={activity.id} className="flex justify-between items-center p-2 border rounded-md">
+                        <div>
+                          <div className="font-medium">{activity.title}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {format(new Date(activity.date), "PPP")} • {activity.time}
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="capitalize">
+                          {activity.category}
+                        </Badge>
+                      </div>
+                    ))}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+      
+      {/* Add/Edit Activity Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{editingActivity ? "Edit Activity" : "Add New Activity"}</DialogTitle>
+            <DialogDescription>
+              {editingActivity 
+                ? "Update details of this campus activity"
+                : "Fill in the details to create a new campus activity"}
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Tech Fest 2025" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
-              <div>
-                <label className="text-sm font-medium mb-1 block">Location</label>
-                <Input 
-                  placeholder="Activity location"
-                  value={currentActivity.location}
-                  onChange={(e) => setCurrentActivity({...currentActivity, location: e.target.value})}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="date"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Date</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className="pl-3 text-left font-normal"
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) => {
+                              // Can't select dates in the past
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              return date < today;
+                            }}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="time"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Time (24-hour format)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. 18:00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
               
-              <div>
-                <label className="text-sm font-medium mb-1 block">Category</label>
-                <Select 
-                  value={currentActivity.category}
-                  onValueChange={(value) => setCurrentActivity({...currentActivity, category: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="event">Event</SelectItem>
-                    <SelectItem value="lecture">Lecture</SelectItem>
-                    <SelectItem value="club">Club Meeting</SelectItem>
-                    <SelectItem value="exhibition">Exhibition</SelectItem>
-                    <SelectItem value="sports">Sports</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <FormField
+                control={form.control}
+                name="location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Lecture Hall 1" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
-              <Button className="w-full" onClick={handleSaveActivity}>
-                {isEditing ? "Update Activity" : "Add Activity"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>All Activities</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="w-24">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {activities.map((activity) => (
-                <TableRow key={activity.id}>
-                  <TableCell>{activity.title}</TableCell>
-                  <TableCell>{new Date(activity.date).toLocaleDateString()} at {activity.time}</TableCell>
-                  <TableCell>{activity.location}</TableCell>
-                  <TableCell className="capitalize">{activity.category}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="event">Event</SelectItem>
+                        <SelectItem value="lecture">Lecture</SelectItem>
+                        <SelectItem value="club">Club Meeting</SelectItem>
+                        <SelectItem value="exhibition">Exhibition</SelectItem>
+                        <SelectItem value="sports">Sports</SelectItem>
+                        <SelectItem value="workshop">Workshop</SelectItem>
+                        <SelectItem value="conference">Conference</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Provide details about the activity..."
+                        className="resize-y min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="space-y-2">
+                <FormLabel htmlFor="image">Event Poster Image (Optional)</FormLabel>
+                <div className="flex items-center gap-4">
+                  <Input
+                    id="image"
+                    type="file"
+                    accept="image/*"
+                    className="w-full"
+                    onChange={handleImageUpload}
+                  />
+                </div>
+                
+                {imagePreview && (
+                  <div className="mt-2 border rounded-md overflow-hidden">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="max-h-40 object-contain mx-auto"
+                    />
+                    <div className="p-2 bg-muted/20 flex justify-end">
                       <Button
+                        type="button"
                         variant="ghost"
-                        size="icon"
-                        onClick={() => editActivity(activity)}
+                        size="sm"
+                        onClick={() => {
+                          setImagePreview(null);
+                          form.setValue("imageUrl", "");
+                        }}
                       >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deleteActivity(activity.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
+                        Remove
                       </Button>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                  </div>
+                )}
+              </div>
+              
+              <DialogFooter>
+                <Button type="submit">
+                  {editingActivity ? "Update Activity" : "Add Activity"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this activity? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDeleteActivity}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

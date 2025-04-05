@@ -17,6 +17,9 @@ export interface CampusActivity {
   time: string;
   location: string;
   category: string;
+  addedBy?: string;
+  clubId?: string;
+  imageUrl?: string;
 }
 
 export interface MenuItem {
@@ -47,8 +50,10 @@ export interface MessMenuType {
 export interface AdminUser {
   id: string;
   email: string;
-  role: 'admin' | 'editor';
+  role: 'admin' | 'editor' | 'clubAdmin';
   dateAdded: string;
+  clubId?: string;
+  clubName?: string;
 }
 
 // New types for the enhanced features
@@ -70,6 +75,7 @@ export interface Notice {
   date: string;
   postedBy: string;
   important: boolean;
+  clubId?: string;
 }
 
 export interface EventRegistration {
@@ -86,4 +92,16 @@ export interface UserProfile {
   role: 'student' | 'coordinator' | 'admin';
   clubMemberships: string[];
   interests: string[];
+  bookmarks: string[]; // Event or notice IDs that are bookmarked
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: 'event' | 'notice' | 'reminder' | 'urgent';
+  date: string;
+  read: boolean;
+  relatedId?: string; // ID of related event or notice
 }

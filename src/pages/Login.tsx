@@ -11,6 +11,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Mail } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AdminUser } from "@/types";
 
 // Basic admin emails list - in a real app this would come from a secure backend
 const ADMIN_EMAILS = [
@@ -30,9 +31,17 @@ const Login = () => {
 
   useEffect(() => {
     // Check if already logged in
-    const email = localStorage.getItem("admin_email");
+    const email = localStorage.getItem("user_email") || localStorage.getItem("admin_email");
+    const role = localStorage.getItem("user_role");
+    
     if (email) {
-      navigate("/admin/dashboard");
+      if (role === "admin") {
+        navigate("/admin/dashboard");
+      } else if (role === "clubAdmin") {
+        navigate("/admin/campus-activities");
+      } else {
+        navigate("/");
+      }
     }
   }, [navigate]);
 
@@ -51,19 +60,32 @@ const Login = () => {
       // For admin login
       if (authOption === "admin") {
         const storedAdmins = localStorage.getItem("admin_users");
-        const adminList = storedAdmins ? JSON.parse(storedAdmins) : ADMIN_EMAILS.map(email => ({
-          id: Math.random().toString(),
-          email,
-          role: "admin",
-          dateAdded: new Date().toISOString().split("T")[0]
-        }));
+        const adminList: AdminUser[] = storedAdmins 
+          ? JSON.parse(storedAdmins) 
+          : ADMIN_EMAILS.map(email => ({
+              id: Math.random().toString(),
+              email,
+              role: "admin",
+              dateAdded: new Date().toISOString().split("T")[0]
+            }));
         
-        const isAdmin = adminList.some((admin: any) => admin.email === values.email);
+        const adminUser = adminList.find(admin => admin.email === values.email);
         
-        if (isAdmin) {
+        if (adminUser) {
           localStorage.setItem("admin_email", values.email);
-          toast.success("Admin login successful");
-          navigate("/admin/dashboard");
+          localStorage.setItem("user_role", adminUser.role);
+          localStorage.setItem("club_id", adminUser.clubId || "");
+          localStorage.setItem("club_name", adminUser.clubName || "");
+          
+          toast.success(`Login successful as ${adminUser.role}`);
+          
+          if (adminUser.role === "admin") {
+            navigate("/admin/dashboard");
+          } else if (adminUser.role === "clubAdmin") {
+            navigate("/admin/campus-activities");
+          } else {
+            navigate("/");
+          }
         } else {
           toast.error("You don't have admin access");
         }
@@ -72,6 +94,7 @@ const Login = () => {
       else {
         if (values.email.endsWith("iitgn.ac.in")) {
           localStorage.setItem("user_email", values.email);
+          localStorage.setItem("user_role", "student");
           toast.success("Student login successful");
           navigate("/");
         } else {
@@ -84,19 +107,62 @@ const Login = () => {
   };
 
   const handleGoogleLogin = () => {
-    toast.info("Google Login would be implemented in a production environment");
+    setIsLoading(true);
     
-    // Simulate Google login
+    // Simulate Google OAuth login
     setTimeout(() => {
+      // In production, this would use the actual Google OAuth flow
+      const mockGoogleUser = {
+        email: authOption === "admin" 
+          ? "admin@iitgn.ac.in" 
+          : "student123@iitgn.ac.in",
+        name: authOption === "admin" ? "Admin User" : "Student User",
+      };
+      
+      // Check if admin
       if (authOption === "admin") {
-        toast.error("Please use email login for admin access");
+        const storedAdmins = localStorage.getItem("admin_users");
+        const adminList: AdminUser[] = storedAdmins 
+          ? JSON.parse(storedAdmins) 
+          : ADMIN_EMAILS.map(email => ({
+              id: Math.random().toString(),
+              email,
+              role: "admin",
+              dateAdded: new Date().toISOString().split("T")[0]
+            }));
+        
+        const adminUser = adminList.find(admin => admin.email === mockGoogleUser.email);
+        
+        if (adminUser) {
+          localStorage.setItem("admin_email", mockGoogleUser.email);
+          localStorage.setItem("user_email", mockGoogleUser.email);
+          localStorage.setItem("user_name", mockGoogleUser.name);
+          localStorage.setItem("user_role", adminUser.role);
+          localStorage.setItem("club_id", adminUser.clubId || "");
+          localStorage.setItem("club_name", adminUser.clubName || "");
+          
+          toast.success(`Google login successful as ${adminUser.role}`);
+          
+          if (adminUser.role === "admin") {
+            navigate("/admin/dashboard");
+          } else if (adminUser.role === "clubAdmin") {
+            navigate("/admin/campus-activities");
+          } else {
+            navigate("/");
+          }
+        } else {
+          toast.error("You don't have admin access");
+        }
       } else {
-        const dummyEmail = "student@iitgn.ac.in";
-        localStorage.setItem("user_email", dummyEmail);
-        toast.success("Student login successful (Simulated)");
+        localStorage.setItem("user_email", mockGoogleUser.email);
+        localStorage.setItem("user_name", mockGoogleUser.name);
+        localStorage.setItem("user_role", "student");
+        toast.success("Student login successful via Google");
         navigate("/");
       }
-    }, 1000);
+      
+      setIsLoading(false);
+    }, 1500);
   };
 
   return (
@@ -115,7 +181,7 @@ const Login = () => {
               <TabsTrigger value="student">Student Login</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="admin" className="mt-4">
+            <TabsContent value="admin" className="mt-4 space-y-4">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
@@ -132,10 +198,34 @@ const Login = () => {
                     )}
                   />
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Checking..." : "Login"}
+                    {isLoading ? "Checking..." : "Login with Email"}
                   </Button>
                 </form>
               </Form>
+              
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+              
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={handleGoogleLogin}
+                disabled={isLoading}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" className="mr-2 h-4 w-4">
+                  <path fill="currentColor" d="M12.545 10.239v3.821h5.445c-.712 2.315-2.647 3.972-5.445 3.972a6.033 6.033 0 1 1 0-12.064c1.498 0 2.866.549 3.921 1.453l2.814-2.814A9.969 9.969 0 0 0 12.545 2C7.021 2 2.543 6.477 2.543 12s4.478 10 10.002 10c8.396 0 10.249-7.85 9.426-11.748l-9.426-.013z" />
+                </svg>
+                {isLoading ? "Signing in..." : "Sign in with Google"}
+              </Button>
+              
               <div className="mt-4 text-center text-sm text-muted-foreground">
                 Only authorized IITGN staff can access admin features
               </div>
@@ -178,11 +268,12 @@ const Login = () => {
                 variant="outline" 
                 className="w-full" 
                 onClick={handleGoogleLogin}
+                disabled={isLoading}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" className="mr-2 h-4 w-4">
                   <path fill="currentColor" d="M12.545 10.239v3.821h5.445c-.712 2.315-2.647 3.972-5.445 3.972a6.033 6.033 0 1 1 0-12.064c1.498 0 2.866.549 3.921 1.453l2.814-2.814A9.969 9.969 0 0 0 12.545 2C7.021 2 2.543 6.477 2.543 12s4.478 10 10.002 10c8.396 0 10.249-7.85 9.426-11.748l-9.426-.013z" />
                 </svg>
-                Sign in with Google
+                {isLoading ? "Signing in..." : "Sign in with Google"}
               </Button>
             </TabsContent>
           </Tabs>
