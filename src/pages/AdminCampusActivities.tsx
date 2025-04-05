@@ -5,153 +5,125 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Plus, Trash2, Save, Edit } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { ArrowLeft, Plus, Trash2, Edit } from "lucide-react";
 import { toast } from "sonner";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { CampusActivity } from "@/types";
 
-interface CampusActivity {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  location: string;
-  description: string;
-  category: string;
-}
-
-const formSchema = z.object({
-  title: z.string().min(3, "Title must be at least 3 characters"),
-  date: z.string().min(1, "Date is required"),
-  time: z.string().min(1, "Time is required"),
-  location: z.string().min(1, "Location is required"),
-  description: z.string().min(1, "Description is required"),
-  category: z.string().min(1, "Category is required"),
-});
+// Sample initial data
+const initialCampusActivities: CampusActivity[] = [
+  {
+    id: "1",
+    title: "Tech Club Meeting",
+    description: "Weekly meeting of the technology club to discuss ongoing projects",
+    date: "2025-04-05",
+    time: "17:00",
+    location: "Student Activity Center",
+    category: "club"
+  },
+  {
+    id: "2",
+    title: "Cultural Night",
+    description: "Annual cultural night featuring performances from various student groups",
+    date: "2025-04-10",
+    time: "19:00",
+    location: "Auditorium",
+    category: "event"
+  },
+  {
+    id: "3",
+    title: "Guest Lecture: AI Advancements",
+    description: "Special lecture by Dr. Jane Smith on recent advancements in AI",
+    date: "2025-04-12",
+    time: "10:00",
+    location: "Lecture Hall 1",
+    category: "lecture"
+  }
+];
 
 const AdminCampusActivities = () => {
   const navigate = useNavigate();
   const [activities, setActivities] = useState<CampusActivity[]>([]);
-  const [isAddingActivity, setIsAddingActivity] = useState(false);
-  const [editingActivity, setEditingActivity] = useState<string | null>(null);
-  
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: "",
-      date: new Date().toISOString().split('T')[0],
-      time: "12:00",
-      location: "",
-      description: "",
-      category: "Talk",
-    },
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentActivity, setCurrentActivity] = useState<CampusActivity>({
+    id: "",
+    title: "",
+    description: "",
+    date: "",
+    time: "",
+    location: "",
+    category: "event"
   });
-
+  const [isEditing, setIsEditing] = useState(false);
+  
   useEffect(() => {
-    // Load data from localStorage or initialize with empty array
-    const storedData = localStorage.getItem("campus_activities");
+    // Load data from localStorage or use initial data
+    const storedData = localStorage.getItem("campus_activities_data");
     if (storedData) {
       setActivities(JSON.parse(storedData));
     } else {
-      // Initialize with some example data
-      const initialData: CampusActivity[] = [
-        {
-          id: "1",
-          title: "Guest Lecture: AI Ethics",
-          date: "2025-04-15",
-          time: "15:00",
-          location: "Lecture Hall 1",
-          description: "A discussion on ethical considerations in AI development",
-          category: "Talk"
-        },
-        {
-          id: "2",
-          title: "Art Exhibition",
-          date: "2025-04-20",
-          time: "10:00",
-          location: "Student Center",
-          description: "Showcasing student artwork from all departments",
-          category: "Exhibition"
-        }
-      ];
-      
-      setActivities(initialData);
-      localStorage.setItem("campus_activities", JSON.stringify(initialData));
+      setActivities(initialCampusActivities);
     }
   }, []);
 
-  const handleSaveActivities = () => {
-    localStorage.setItem("campus_activities", JSON.stringify(activities));
-    toast.success("Campus activities saved successfully");
+  const handleSaveActivity = () => {
+    if (isEditing) {
+      // Update existing activity
+      setActivities(activities.map(activity => 
+        activity.id === currentActivity.id ? currentActivity : activity
+      ));
+    } else {
+      // Add new activity
+      const newActivity: CampusActivity = {
+        ...currentActivity,
+        id: `activity-${Date.now()}`
+      };
+      setActivities([...activities, newActivity]);
+    }
+    
+    // Save to localStorage
+    localStorage.setItem("campus_activities_data", JSON.stringify(
+      isEditing 
+        ? activities.map(activity => activity.id === currentActivity.id ? currentActivity : activity)
+        : [...activities, {...currentActivity, id: `activity-${Date.now()}`}]
+    ));
+    
+    toast.success(isEditing ? "Activity updated successfully" : "Activity added successfully");
+    resetForm();
+    setIsDialogOpen(false);
   };
 
-  const handleAddActivity = (data: z.infer<typeof formSchema>) => {
-    const newActivity: CampusActivity = {
-      id: Date.now().toString(),
-      ...data
-    };
-    
-    const updatedActivities = [...activities, newActivity];
-    setActivities(updatedActivities);
-    localStorage.setItem("campus_activities", JSON.stringify(updatedActivities));
-    
-    setIsAddingActivity(false);
-    form.reset();
-    toast.success("Activity added successfully");
+  const editActivity = (activity: CampusActivity) => {
+    setCurrentActivity(activity);
+    setIsEditing(true);
+    setIsDialogOpen(true);
   };
 
-  const handleEditActivity = (activity: CampusActivity) => {
-    setEditingActivity(activity.id);
-    form.reset({
-      title: activity.title,
-      date: activity.date,
-      time: activity.time,
-      location: activity.location,
-      description: activity.description,
-      category: activity.category,
-    });
-    setIsAddingActivity(true);
-  };
-
-  const handleUpdateActivity = (data: z.infer<typeof formSchema>) => {
-    if (!editingActivity) return;
-    
-    const updatedActivities = activities.map(activity => {
-      if (activity.id === editingActivity) {
-        return {
-          ...activity,
-          ...data
-        };
-      }
-      return activity;
-    });
-    
-    setActivities(updatedActivities);
-    localStorage.setItem("campus_activities", JSON.stringify(updatedActivities));
-    
-    setIsAddingActivity(false);
-    setEditingActivity(null);
-    form.reset();
-    toast.success("Activity updated successfully");
-  };
-
-  const handleDeleteActivity = (id: string) => {
+  const deleteActivity = (id: string) => {
     const updatedActivities = activities.filter(activity => activity.id !== id);
     setActivities(updatedActivities);
-    localStorage.setItem("campus_activities", JSON.stringify(updatedActivities));
+    localStorage.setItem("campus_activities_data", JSON.stringify(updatedActivities));
     toast.success("Activity deleted successfully");
   };
 
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    if (editingActivity) {
-      handleUpdateActivity(data);
-    } else {
-      handleAddActivity(data);
-    }
+  const resetForm = () => {
+    setCurrentActivity({
+      id: "",
+      title: "",
+      description: "",
+      date: "",
+      time: "",
+      location: "",
+      category: "event"
+    });
+    setIsEditing(false);
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) resetForm();
   };
 
   return (
@@ -173,153 +145,95 @@ const AdminCampusActivities = () => {
         </div>
       </div>
 
-      <div className="flex justify-between">
-        <Button onClick={() => {
-          form.reset();
-          setEditingActivity(null);
-          setIsAddingActivity(!isAddingActivity);
-        }}>
-          {isAddingActivity ? "Cancel" : (
-            <>
+      <div className="flex justify-end">
+        <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
+          <DialogTrigger asChild>
+            <Button onClick={() => setIsDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Add Activity
-            </>
-          )}
-        </Button>
-        <Button onClick={handleSaveActivities}>
-          <Save className="h-4 w-4 mr-2" />
-          Save All Changes
-        </Button>
-      </div>
-
-      {isAddingActivity && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{editingActivity ? "Edit Activity" : "Add New Activity"}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="title"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Title</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Activity title" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="category"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Talk">Talk</SelectItem>
-                            <SelectItem value="Exhibition">Exhibition</SelectItem>
-                            <SelectItem value="Workshop">Workshop</SelectItem>
-                            <SelectItem value="Cultural">Cultural</SelectItem>
-                            <SelectItem value="Sports">Sports</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="time"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Time</FormLabel>
-                        <FormControl>
-                          <Input type="time" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="location"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Location</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Activity location" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Describe the activity" 
-                          rows={4}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+              Add New Activity
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{isEditing ? "Edit Activity" : "Add New Activity"}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Title</label>
+                <Input 
+                  placeholder="Activity title"
+                  value={currentActivity.title}
+                  onChange={(e) => setCurrentActivity({...currentActivity, title: e.target.value})}
                 />
-                
-                <div className="flex justify-end">
-                  <Button type="submit">
-                    {editingActivity ? "Update Activity" : "Add Activity"}
-                  </Button>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium mb-1 block">Description</label>
+                <Textarea 
+                  placeholder="Activity description"
+                  value={currentActivity.description}
+                  onChange={(e) => setCurrentActivity({...currentActivity, description: e.target.value})}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Date</label>
+                  <Input 
+                    type="date"
+                    value={currentActivity.date}
+                    onChange={(e) => setCurrentActivity({...currentActivity, date: e.target.value})}
+                  />
                 </div>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      )}
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Time</label>
+                  <Input 
+                    type="time"
+                    value={currentActivity.time}
+                    onChange={(e) => setCurrentActivity({...currentActivity, time: e.target.value})}
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium mb-1 block">Location</label>
+                <Input 
+                  placeholder="Activity location"
+                  value={currentActivity.location}
+                  onChange={(e) => setCurrentActivity({...currentActivity, location: e.target.value})}
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium mb-1 block">Category</label>
+                <Select 
+                  value={currentActivity.category}
+                  onValueChange={(value) => setCurrentActivity({...currentActivity, category: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="event">Event</SelectItem>
+                    <SelectItem value="lecture">Lecture</SelectItem>
+                    <SelectItem value="club">Club Meeting</SelectItem>
+                    <SelectItem value="exhibition">Exhibition</SelectItem>
+                    <SelectItem value="sports">Sports</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Button className="w-full" onClick={handleSaveActivity}>
+                {isEditing ? "Update Activity" : "Add Activity"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Current Activities</CardTitle>
+          <CardTitle>All Activities</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -327,48 +241,38 @@ const AdminCampusActivities = () => {
               <TableRow>
                 <TableHead>Title</TableHead>
                 <TableHead>Date</TableHead>
-                <TableHead>Time</TableHead>
                 <TableHead>Location</TableHead>
                 <TableHead>Category</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
+                <TableHead className="w-24">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {activities.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
-                    No activities added yet
+              {activities.map((activity) => (
+                <TableRow key={activity.id}>
+                  <TableCell>{activity.title}</TableCell>
+                  <TableCell>{new Date(activity.date).toLocaleDateString()} at {activity.time}</TableCell>
+                  <TableCell>{activity.location}</TableCell>
+                  <TableCell className="capitalize">{activity.category}</TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => editActivity(activity)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteActivity(activity.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
-              ) : (
-                activities.map((activity) => (
-                  <TableRow key={activity.id}>
-                    <TableCell className="font-medium">{activity.title}</TableCell>
-                    <TableCell>{new Date(activity.date).toLocaleDateString()}</TableCell>
-                    <TableCell>{activity.time}</TableCell>
-                    <TableCell>{activity.location}</TableCell>
-                    <TableCell>{activity.category}</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEditActivity(activity)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteActivity(activity.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
+              ))}
             </TableBody>
           </Table>
         </CardContent>

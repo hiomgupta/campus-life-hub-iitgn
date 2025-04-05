@@ -5,223 +5,207 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Plus, Trash2, Save, Edit } from "lucide-react";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Plus, Trash2, Edit, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { FoodOutlet, MenuItem } from "@/types";
 
-interface FoodOutlet {
-  id: string;
-  name: string;
-  description: string;
-  location: string;
-  hours: string;
-  menu: MenuItem[];
-}
-
-interface MenuItem {
-  id: string;
-  name: string;
-  price: string;
-  category: string;
-}
-
-const outletFormSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  description: z.string(),
-  location: z.string().min(2, "Location is required"),
-  hours: z.string(),
-});
-
-const menuItemFormSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  price: z.string().min(1, "Price is required"),
-  category: z.string(),
-});
+// Sample initial data
+const initialFoodOutlets: FoodOutlet[] = [
+  {
+    id: "1",
+    name: "Campus Café",
+    description: "Coffee, snacks, and light meals",
+    location: "Student Center",
+    hours: "7:30 AM - 9:00 PM",
+    menu: [
+      { id: "1-1", name: "Espresso", category: "Beverages", price: "₹30" },
+      { id: "1-2", name: "Sandwich", category: "Food", price: "₹60" },
+      { id: "1-3", name: "Muffin", category: "Bakery", price: "₹40" }
+    ]
+  },
+  {
+    id: "2",
+    name: "Food Court",
+    description: "Multiple cuisines under one roof",
+    location: "Academic Block",
+    hours: "11:00 AM - 10:00 PM",
+    menu: [
+      { id: "2-1", name: "Burger", category: "Fast Food", price: "₹80" },
+      { id: "2-2", name: "Pizza", category: "Fast Food", price: "₹150" },
+      { id: "2-3", name: "Noodles", category: "Chinese", price: "₹70" }
+    ]
+  }
+];
 
 const AdminFoodOutlets = () => {
   const navigate = useNavigate();
-  const [outlets, setOutlets] = useState<FoodOutlet[]>([]);
-  const [isAddingOutlet, setIsAddingOutlet] = useState(false);
-  const [isAddingMenuItem, setIsAddingMenuItem] = useState(false);
-  const [editingOutlet, setEditingOutlet] = useState<string | null>(null);
-  const [currentOutlet, setCurrentOutlet] = useState<string | null>(null);
+  const [foodOutlets, setFoodOutlets] = useState<FoodOutlet[]>([]);
+  const [isOutletDialogOpen, setIsOutletDialogOpen] = useState(false);
+  const [isMenuItemDialogOpen, setIsMenuItemDialogOpen] = useState(false);
+  const [currentOutletIndex, setCurrentOutletIndex] = useState<number>(-1);
   
-  const outletForm = useForm<z.infer<typeof outletFormSchema>>({
-    resolver: zodResolver(outletFormSchema),
-    defaultValues: {
+  const [currentOutlet, setCurrentOutlet] = useState<FoodOutlet>({
+    id: "",
+    name: "",
+    description: "",
+    location: "",
+    hours: "",
+    menu: []
+  });
+  
+  const [currentMenuItem, setCurrentMenuItem] = useState<MenuItem>({
+    id: "",
+    name: "",
+    category: "",
+    price: ""
+  });
+  
+  const [isEditingOutlet, setIsEditingOutlet] = useState(false);
+  const [isEditingMenuItem, setIsEditingMenuItem] = useState(false);
+  
+  useEffect(() => {
+    // Load data from localStorage or use initial data
+    const storedData = localStorage.getItem("food_outlets_data");
+    if (storedData) {
+      setFoodOutlets(JSON.parse(storedData));
+    } else {
+      setFoodOutlets(initialFoodOutlets);
+    }
+  }, []);
+
+  const saveToLocalStorage = (data: FoodOutlet[]) => {
+    localStorage.setItem("food_outlets_data", JSON.stringify(data));
+  };
+
+  const handleSaveOutlet = () => {
+    // Ensure all required fields have values
+    const outletToSave: FoodOutlet = {
+      ...currentOutlet,
+      name: currentOutlet.name || "New Outlet",
+      description: currentOutlet.description || "Description",
+      location: currentOutlet.location || "Location",
+      hours: currentOutlet.hours || "Hours"
+    };
+    
+    if (isEditingOutlet) {
+      // Update existing outlet
+      const updatedOutlets = foodOutlets.map(outlet => 
+        outlet.id === outletToSave.id ? outletToSave : outlet
+      );
+      setFoodOutlets(updatedOutlets);
+      saveToLocalStorage(updatedOutlets);
+    } else {
+      // Add new outlet
+      const newOutlet = {
+        ...outletToSave,
+        id: `outlet-${Date.now()}`
+      };
+      const updatedOutlets = [...foodOutlets, newOutlet];
+      setFoodOutlets(updatedOutlets);
+      saveToLocalStorage(updatedOutlets);
+    }
+    
+    toast.success(isEditingOutlet ? "Outlet updated successfully" : "Outlet added successfully");
+    resetOutletForm();
+    setIsOutletDialogOpen(false);
+  };
+
+  const handleSaveMenuItem = () => {
+    if (currentOutletIndex === -1) return;
+    
+    // Ensure all required fields have values
+    const menuItemToSave: MenuItem = {
+      ...currentMenuItem,
+      name: currentMenuItem.name || "New Item",
+      category: currentMenuItem.category || "Other",
+      price: currentMenuItem.price || "₹0"
+    };
+    
+    const updatedOutlets = [...foodOutlets];
+    
+    if (isEditingMenuItem) {
+      // Update existing menu item
+      updatedOutlets[currentOutletIndex].menu = updatedOutlets[currentOutletIndex].menu.map(item => 
+        item.id === menuItemToSave.id ? menuItemToSave : item
+      );
+    } else {
+      // Add new menu item
+      const newMenuItem = {
+        ...menuItemToSave,
+        id: `item-${Date.now()}`
+      };
+      updatedOutlets[currentOutletIndex].menu.push(newMenuItem);
+    }
+    
+    setFoodOutlets(updatedOutlets);
+    saveToLocalStorage(updatedOutlets);
+    
+    toast.success(isEditingMenuItem ? "Menu item updated successfully" : "Menu item added successfully");
+    resetMenuItemForm();
+    setIsMenuItemDialogOpen(false);
+  };
+
+  const editOutlet = (outlet: FoodOutlet) => {
+    setCurrentOutlet(outlet);
+    setIsEditingOutlet(true);
+    setIsOutletDialogOpen(true);
+  };
+
+  const editMenuItem = (outletIndex: number, menuItem: MenuItem) => {
+    setCurrentOutletIndex(outletIndex);
+    setCurrentMenuItem(menuItem);
+    setIsEditingMenuItem(true);
+    setIsMenuItemDialogOpen(true);
+  };
+
+  const deleteOutlet = (id: string) => {
+    const updatedOutlets = foodOutlets.filter(outlet => outlet.id !== id);
+    setFoodOutlets(updatedOutlets);
+    saveToLocalStorage(updatedOutlets);
+    toast.success("Outlet deleted successfully");
+  };
+
+  const deleteMenuItem = (outletIndex: number, menuItemId: string) => {
+    const updatedOutlets = [...foodOutlets];
+    updatedOutlets[outletIndex].menu = updatedOutlets[outletIndex].menu.filter(item => item.id !== menuItemId);
+    setFoodOutlets(updatedOutlets);
+    saveToLocalStorage(updatedOutlets);
+    toast.success("Menu item deleted successfully");
+  };
+
+  const resetOutletForm = () => {
+    setCurrentOutlet({
+      id: "",
       name: "",
       description: "",
       location: "",
       hours: "",
-    },
-  });
-
-  const menuItemForm = useForm<z.infer<typeof menuItemFormSchema>>({
-    resolver: zodResolver(menuItemFormSchema),
-    defaultValues: {
-      name: "",
-      price: "",
-      category: "Main Course",
-    },
-  });
-
-  useEffect(() => {
-    // Load data from localStorage or initialize with example data
-    const storedData = localStorage.getItem("food_outlets");
-    if (storedData) {
-      setOutlets(JSON.parse(storedData));
-    } else {
-      // Initialize with some example data
-      const initialData: FoodOutlet[] = [
-        {
-          id: "1",
-          name: "Campus Cafe",
-          description: "A cozy cafe offering drinks and snacks",
-          location: "Student Center, Ground Floor",
-          hours: "8:00 AM - 8:00 PM",
-          menu: [
-            { id: "101", name: "Coffee", price: "₹20", category: "Beverages" },
-            { id: "102", name: "Sandwich", price: "₹60", category: "Snacks" }
-          ]
-        },
-        {
-          id: "2",
-          name: "Academic Block Canteen",
-          description: "Quick meals for students on the go",
-          location: "Academic Block, First Floor",
-          hours: "9:00 AM - 5:00 PM",
-          menu: [
-            { id: "201", name: "Lunch Thali", price: "₹80", category: "Main Course" },
-            { id: "202", name: "Tea", price: "₹10", category: "Beverages" }
-          ]
-        }
-      ];
-      
-      setOutlets(initialData);
-      localStorage.setItem("food_outlets", JSON.stringify(initialData));
-    }
-  }, []);
-
-  const handleSaveOutlets = () => {
-    localStorage.setItem("food_outlets", JSON.stringify(outlets));
-    toast.success("Food outlets saved successfully");
-  };
-
-  const handleAddOutlet = (data: z.infer<typeof outletFormSchema>) => {
-    const newOutlet: FoodOutlet = {
-      id: Date.now().toString(),
-      ...data,
       menu: []
-    };
-    
-    const updatedOutlets = [...outlets, newOutlet];
-    setOutlets(updatedOutlets);
-    localStorage.setItem("food_outlets", JSON.stringify(updatedOutlets));
-    
-    setIsAddingOutlet(false);
-    outletForm.reset();
-    toast.success("Outlet added successfully");
-  };
-
-  const handleEditOutlet = (outlet: FoodOutlet) => {
-    setEditingOutlet(outlet.id);
-    outletForm.reset({
-      name: outlet.name,
-      description: outlet.description,
-      location: outlet.location,
-      hours: outlet.hours,
     });
-    setIsAddingOutlet(true);
+    setIsEditingOutlet(false);
   };
 
-  const handleUpdateOutlet = (data: z.infer<typeof outletFormSchema>) => {
-    if (!editingOutlet) return;
-    
-    const updatedOutlets = outlets.map(outlet => {
-      if (outlet.id === editingOutlet) {
-        return {
-          ...outlet,
-          ...data
-        };
-      }
-      return outlet;
+  const resetMenuItemForm = () => {
+    setCurrentMenuItem({
+      id: "",
+      name: "",
+      category: "",
+      price: ""
     });
-    
-    setOutlets(updatedOutlets);
-    localStorage.setItem("food_outlets", JSON.stringify(updatedOutlets));
-    
-    setIsAddingOutlet(false);
-    setEditingOutlet(null);
-    outletForm.reset();
-    toast.success("Outlet updated successfully");
+    setIsEditingMenuItem(false);
   };
 
-  const handleDeleteOutlet = (id: string) => {
-    const updatedOutlets = outlets.filter(outlet => outlet.id !== id);
-    setOutlets(updatedOutlets);
-    localStorage.setItem("food_outlets", JSON.stringify(updatedOutlets));
-    toast.success("Outlet deleted successfully");
-    
-    if (currentOutlet === id) {
-      setCurrentOutlet(null);
-    }
+  const handleOutletDialogClose = (open: boolean) => {
+    setIsOutletDialogOpen(open);
+    if (!open) resetOutletForm();
   };
 
-  const handleAddMenuItem = (data: z.infer<typeof menuItemFormSchema>) => {
-    if (!currentOutlet) return;
-    
-    const newMenuItem: MenuItem = {
-      id: Date.now().toString(),
-      ...data
-    };
-    
-    const updatedOutlets = outlets.map(outlet => {
-      if (outlet.id === currentOutlet) {
-        return {
-          ...outlet,
-          menu: [...outlet.menu, newMenuItem]
-        };
-      }
-      return outlet;
-    });
-    
-    setOutlets(updatedOutlets);
-    localStorage.setItem("food_outlets", JSON.stringify(updatedOutlets));
-    
-    setIsAddingMenuItem(false);
-    menuItemForm.reset();
-    toast.success("Menu item added successfully");
-  };
-
-  const handleDeleteMenuItem = (outletId: string, itemId: string) => {
-    const updatedOutlets = outlets.map(outlet => {
-      if (outlet.id === outletId) {
-        return {
-          ...outlet,
-          menu: outlet.menu.filter(item => item.id !== itemId)
-        };
-      }
-      return outlet;
-    });
-    
-    setOutlets(updatedOutlets);
-    localStorage.setItem("food_outlets", JSON.stringify(updatedOutlets));
-    toast.success("Menu item deleted successfully");
-  };
-
-  const onOutletSubmit = (data: z.infer<typeof outletFormSchema>) => {
-    if (editingOutlet) {
-      handleUpdateOutlet(data);
-    } else {
-      handleAddOutlet(data);
-    }
-  };
-
-  const onMenuItemSubmit = (data: z.infer<typeof menuItemFormSchema>) => {
-    handleAddMenuItem(data);
+  const handleMenuItemDialogClose = (open: boolean) => {
+    setIsMenuItemDialogOpen(open);
+    if (!open) resetMenuItemForm();
   };
 
   return (
@@ -243,262 +227,224 @@ const AdminFoodOutlets = () => {
         </div>
       </div>
 
-      <div className="flex justify-between">
-        <Button onClick={() => {
-          outletForm.reset();
-          setEditingOutlet(null);
-          setIsAddingOutlet(!isAddingOutlet);
-        }}>
-          {isAddingOutlet ? "Cancel" : (
-            <>
+      <div className="flex justify-end">
+        <Dialog open={isOutletDialogOpen} onOpenChange={handleOutletDialogClose}>
+          <DialogTrigger asChild>
+            <Button onClick={() => setIsOutletDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Add Food Outlet
-            </>
-          )}
-        </Button>
-        <Button onClick={handleSaveOutlets}>
-          <Save className="h-4 w-4 mr-2" />
-          Save All Changes
-        </Button>
+              Add New Outlet
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{isEditingOutlet ? "Edit Food Outlet" : "Add New Food Outlet"}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Name</label>
+                <Input 
+                  placeholder="Outlet name"
+                  value={currentOutlet.name}
+                  onChange={(e) => setCurrentOutlet({...currentOutlet, name: e.target.value})}
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium mb-1 block">Description</label>
+                <Textarea 
+                  placeholder="Outlet description"
+                  value={currentOutlet.description}
+                  onChange={(e) => setCurrentOutlet({...currentOutlet, description: e.target.value})}
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium mb-1 block">Location</label>
+                <Input 
+                  placeholder="Outlet location"
+                  value={currentOutlet.location}
+                  onChange={(e) => setCurrentOutlet({...currentOutlet, location: e.target.value})}
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium mb-1 block">Operating Hours</label>
+                <Input 
+                  placeholder="e.g. 9:00 AM - 5:00 PM"
+                  value={currentOutlet.hours}
+                  onChange={(e) => setCurrentOutlet({...currentOutlet, hours: e.target.value})}
+                />
+              </div>
+              
+              <Button className="w-full" onClick={handleSaveOutlet}>
+                {isEditingOutlet ? "Update Outlet" : "Add Outlet"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {isAddingOutlet && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{editingOutlet ? "Edit Food Outlet" : "Add New Food Outlet"}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Form {...outletForm}>
-              <form onSubmit={outletForm.handleSubmit(onOutletSubmit)} className="space-y-4">
-                <FormField
-                  control={outletForm.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Outlet name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={outletForm.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Brief description" rows={2} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={outletForm.control}
-                    name="location"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Location</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Outlet location" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={outletForm.control}
-                    name="hours"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Operating Hours</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g. 9:00 AM - 5:00 PM" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <div className="flex justify-end">
-                  <Button type="submit">
-                    {editingOutlet ? "Update Outlet" : "Add Outlet"}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="md:col-span-1">
-          <CardHeader>
-            <CardTitle>Food Outlets</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {outlets.length === 0 ? (
-                <p className="text-center py-4 text-muted-foreground">
-                  No food outlets added yet
-                </p>
-              ) : (
-                outlets.map((outlet) => (
-                  <div 
-                    key={outlet.id} 
-                    className={`flex justify-between items-center p-3 rounded-md border ${currentOutlet === outlet.id ? 'bg-muted' : ''}`}
-                  >
-                    <button
-                      className="flex-1 text-left"
-                      onClick={() => setCurrentOutlet(outlet.id)}
-                    >
-                      <h3 className="font-medium">{outlet.name}</h3>
-                      <p className="text-sm text-muted-foreground">{outlet.location}</p>
-                    </button>
-                    <div className="flex space-x-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEditOutlet(outlet)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteOutlet(outlet.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {currentOutlet && (
-          <Card className="md:col-span-1">
+      <Tabs defaultValue="outlets" className="w-full">
+        <TabsList>
+          <TabsTrigger value="outlets">Manage Outlets</TabsTrigger>
+          <TabsTrigger value="menus">Manage Menus</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="outlets">
+          <Card>
             <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>
-                  Menu Items
-                  <span className="text-sm font-normal text-muted-foreground ml-2">
-                    {outlets.find(o => o.id === currentOutlet)?.name}
-                  </span>
-                </CardTitle>
-                <Button 
-                  size="sm"
-                  onClick={() => {
-                    menuItemForm.reset();
-                    setIsAddingMenuItem(!isAddingMenuItem);
-                  }}
-                >
-                  {isAddingMenuItem ? "Cancel" : "Add Item"}
-                </Button>
-              </div>
+              <CardTitle>All Food Outlets</CardTitle>
             </CardHeader>
             <CardContent>
-              {isAddingMenuItem && (
-                <Card className="border mb-4">
-                  <CardContent className="pt-6">
-                    <Form {...menuItemForm}>
-                      <form onSubmit={menuItemForm.handleSubmit(onMenuItemSubmit)} className="space-y-4">
-                        <FormField
-                          control={menuItemForm.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Item Name</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Menu item name" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <div className="grid grid-cols-2 gap-4">
-                          <FormField
-                            control={menuItemForm.control}
-                            name="price"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Price</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="e.g. ₹50" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={menuItemForm.control}
-                            name="category"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Category</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="e.g. Beverages" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                        
-                        <div className="flex justify-end">
-                          <Button type="submit">
-                            Add Item
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Hours</TableHead>
+                    <TableHead className="w-24">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {foodOutlets.map((outlet) => (
+                    <TableRow key={outlet.id}>
+                      <TableCell className="font-medium">{outlet.name}</TableCell>
+                      <TableCell>{outlet.location}</TableCell>
+                      <TableCell>{outlet.hours}</TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => editOutlet(outlet)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => deleteOutlet(outlet.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
-                      </form>
-                    </Form>
-                  </CardContent>
-                </Card>
-              )}
-              
-              <div className="space-y-2">
-                {outlets.find(o => o.id === currentOutlet)?.menu.length === 0 ? (
-                  <p className="text-center py-4 text-muted-foreground">
-                    No menu items added yet
-                  </p>
-                ) : (
-                  outlets.find(o => o.id === currentOutlet)?.menu.map((item) => (
-                    <div key={item.id} className="flex justify-between items-center p-3 rounded-md border">
-                      <div>
-                        <h3 className="font-medium">{item.name}</h3>
-                        <div className="flex text-sm text-muted-foreground space-x-2">
-                          <span>{item.price}</span>
-                          <span>•</span>
-                          <span>{item.category}</span>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteMenuItem(currentOutlet, item.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  ))
-                )}
-              </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
-        )}
-      </div>
+        </TabsContent>
+        
+        <TabsContent value="menus">
+          <Dialog open={isMenuItemDialogOpen} onOpenChange={handleMenuItemDialogClose}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{isEditingMenuItem ? "Edit Menu Item" : "Add Menu Item"}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Item Name</label>
+                  <Input 
+                    placeholder="Item name"
+                    value={currentMenuItem.name}
+                    onChange={(e) => setCurrentMenuItem({...currentMenuItem, name: e.target.value})}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Category</label>
+                  <Input 
+                    placeholder="e.g. Beverages, Snacks, Meals"
+                    value={currentMenuItem.category}
+                    onChange={(e) => setCurrentMenuItem({...currentMenuItem, category: e.target.value})}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Price</label>
+                  <Input 
+                    placeholder="e.g. ₹50"
+                    value={currentMenuItem.price}
+                    onChange={(e) => setCurrentMenuItem({...currentMenuItem, price: e.target.value})}
+                  />
+                </div>
+                
+                <Button className="w-full" onClick={handleSaveMenuItem}>
+                  {isEditingMenuItem ? "Update Item" : "Add Item"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        
+          {foodOutlets.map((outlet, outletIndex) => (
+            <Card key={outlet.id} className="mb-6">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center justify-between">
+                  <span>{outlet.name} Menu</span>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setCurrentOutletIndex(outletIndex);
+                      setIsMenuItemDialogOpen(true);
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Item
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {outlet.menu.length === 0 ? (
+                  <div className="text-center py-8">
+                    <UtensilsCrossed className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
+                    <p className="mt-4 text-muted-foreground">No menu items yet</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Item</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead className="w-24">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {outlet.menu.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>{item.name}</TableCell>
+                          <TableCell>{item.category}</TableCell>
+                          <TableCell>{item.price}</TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => editMenuItem(outletIndex, item)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => deleteMenuItem(outletIndex, item.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

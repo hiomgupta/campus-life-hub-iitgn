@@ -7,17 +7,15 @@ import {
   Map,
   Home,
   Clock,
-  Users,
   QrCode,
-  BookOpen,
-  BellRing,
-  Utensils
+  Utensils,
+  LucideIcon
 } from "lucide-react";
 
 type NavItem = {
   title: string;
   href: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
 };
 
 const navItems: NavItem[] = [
@@ -55,21 +53,6 @@ const navItems: NavItem[] = [
     title: "Campus Map",
     href: "/campus-map",
     icon: Map,
-  },
-  {
-    title: "Clubs",
-    href: "/clubs",
-    icon: Users,
-  },
-  {
-    title: "Academics",
-    href: "/academics",
-    icon: BookOpen,
-  },
-  {
-    title: "Notifications",
-    href: "/notifications",
-    icon: BellRing,
   },
 ];
 

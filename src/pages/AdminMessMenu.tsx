@@ -8,16 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Plus, Trash2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { messMenuData } from "@/data/mock-data";
-
-// Define interfaces to match the messMenuData structure
-type MessDay = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
-type MealType = 'breakfast' | 'lunch' | 'dinner';
-
-interface MessMenuType {
-  [key: MessDay]: {
-    [key in MealType]: string[];
-  };
-}
+import { MessMenuType, MessDay, MealType } from "@/types";
 
 const AdminMessMenu = () => {
   const navigate = useNavigate();
@@ -31,7 +22,7 @@ const AdminMessMenu = () => {
     if (storedData) {
       setMessMenu(JSON.parse(storedData));
     } else {
-      setMessMenu(messMenuData);
+      setMessMenu(messMenuData as MessMenuType);
     }
   }, []);
 

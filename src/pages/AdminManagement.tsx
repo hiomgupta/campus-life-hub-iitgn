@@ -5,118 +5,139 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trash2, ArrowLeft, Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ArrowLeft, Plus, Save, Trash2, Shield } from "lucide-react";
 import { toast } from "sonner";
+import { AdminUser } from "@/types";
+
+// Initial admin emails
+const initialAdmins: AdminUser[] = [
+  {
+    id: "1",
+    email: "admin@iitgn.ac.in",
+    role: "admin",
+    dateAdded: "2025-04-01"
+  },
+  {
+    id: "2",
+    email: "webadmin@iitgn.ac.in",
+    role: "admin",
+    dateAdded: "2025-04-01"
+  },
+  {
+    id: "3",
+    email: "coordinator@iitgn.ac.in",
+    role: "editor",
+    dateAdded: "2025-04-02"
+  }
+];
 
 const AdminManagement = () => {
   const navigate = useNavigate();
-  const [adminEmails, setAdminEmails] = useState<string[]>([]);
-  const [newEmail, setNewEmail] = useState("");
-  const [adminPassword, setAdminPassword] = useState("");
-  const [isPasswordVerified, setIsPasswordVerified] = useState(false);
-  const [isAddingEmail, setIsAddingEmail] = useState(false);
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [newAdminRole, setNewAdminRole] = useState<"admin" | "editor">("editor");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   
-  // This is just a demonstration - in a real app, the password would be server-verified
-  const DEMO_ADMIN_PASSWORD = "admin123";
-
   useEffect(() => {
-    // Load admin emails from localStorage
-    const storedEmails = localStorage.getItem("admin_emails");
-    if (storedEmails) {
-      setAdminEmails(JSON.parse(storedEmails));
+    // Load data from localStorage or use initial data
+    const storedData = localStorage.getItem("admin_users");
+    if (storedData) {
+      setAdmins(JSON.parse(storedData));
     } else {
-      // Default admin emails
-      const defaultEmails = [
-        "admin@iitgn.ac.in",
-        "webadmin@iitgn.ac.in",
-        "coordinator@iitgn.ac.in"
-      ];
-      localStorage.setItem("admin_emails", JSON.stringify(defaultEmails));
-      setAdminEmails(defaultEmails);
+      setAdmins(initialAdmins);
     }
+    
+    // Get current user
+    const email = localStorage.getItem("admin_email");
+    setCurrentUserEmail(email);
   }, []);
 
-  const handleVerifyPassword = () => {
-    if (adminPassword === DEMO_ADMIN_PASSWORD) {
-      setIsPasswordVerified(true);
-      toast.success("Password verified");
-    } else {
-      toast.error("Incorrect password");
-    }
+  const saveToLocalStorage = (data: AdminUser[]) => {
+    localStorage.setItem("admin_users", JSON.stringify(data));
   };
 
-  const handleAddEmail = () => {
-    // Validate email
-    if (!newEmail || !newEmail.endsWith("iitgn.ac.in")) {
+  const handleAddAdmin = () => {
+    if (!newAdminEmail.trim() || !newAdminEmail.endsWith("iitgn.ac.in")) {
       toast.error("Please enter a valid IITGN email address");
       return;
     }
-
-    // Add email if it doesn't exist already
-    if (!adminEmails.includes(newEmail)) {
-      const updatedEmails = [...adminEmails, newEmail];
-      setAdminEmails(updatedEmails);
-      localStorage.setItem("admin_emails", JSON.stringify(updatedEmails));
-      toast.success(`${newEmail} added to admin list`);
-      setNewEmail("");
-      setIsAddingEmail(false);
-    } else {
-      toast.error("This email is already an admin");
-    }
-  };
-
-  const handleRemoveEmail = (email: string) => {
-    // Don't allow removing the last admin
-    if (adminEmails.length <= 1) {
-      toast.error("Cannot remove the last admin email");
+    
+    // Check if email already exists
+    if (admins.some(admin => admin.email === newAdminEmail)) {
+      toast.error("This admin already exists");
       return;
     }
-
-    const updatedEmails = adminEmails.filter(e => e !== email);
-    setAdminEmails(updatedEmails);
-    localStorage.setItem("admin_emails", JSON.stringify(updatedEmails));
-    toast.success(`${email} removed from admin list`);
+    
+    const newAdmin: AdminUser = {
+      id: `admin-${Date.now()}`,
+      email: newAdminEmail,
+      role: newAdminRole,
+      dateAdded: new Date().toISOString().split('T')[0]
+    };
+    
+    const updatedAdmins = [...admins, newAdmin];
+    setAdmins(updatedAdmins);
+    saveToLocalStorage(updatedAdmins);
+    
+    toast.success("Admin added successfully");
+    setNewAdminEmail("");
+    setIsDialogOpen(false);
   };
 
-  // If password not yet verified, show password form
-  if (!isPasswordVerified) {
-    return (
-      <div className="container max-w-md py-10">
-        <Card>
-          <CardHeader>
-            <Button
-              variant="ghost" 
-              size="icon" 
-              className="absolute left-2 top-2"
-              onClick={() => navigate("/admin/dashboard")}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <CardTitle className="text-center">Admin Verification</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Admin Password</label>
-                <Input 
-                  type="password" 
-                  placeholder="Enter admin password" 
-                  value={adminPassword} 
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  For demo purposes use: admin123
-                </p>
-              </div>
-              <Button className="w-full" onClick={handleVerifyPassword}>
-                Verify
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+  const handleRemoveAdmin = (id: string, email: string) => {
+    // Prevent removing yourself
+    if (email === currentUserEmail) {
+      toast.error("You cannot remove yourself");
+      return;
+    }
+    
+    // Prevent removing the last admin
+    const adminCount = admins.filter(admin => admin.role === "admin").length;
+    const isAdmin = admins.find(admin => admin.id === id)?.role === "admin";
+    
+    if (isAdmin && adminCount <= 1) {
+      toast.error("Cannot remove the last admin");
+      return;
+    }
+    
+    const updatedAdmins = admins.filter(admin => admin.id !== id);
+    setAdmins(updatedAdmins);
+    saveToLocalStorage(updatedAdmins);
+    
+    toast.success("Admin removed successfully");
+  };
+
+  const toggleAdminRole = (id: string) => {
+    const admin = admins.find(a => a.id === id);
+    
+    // Don't allow changing your own role
+    if (admin?.email === currentUserEmail) {
+      toast.error("You cannot change your own role");
+      return;
+    }
+    
+    // Prevent removing the last admin
+    const adminCount = admins.filter(admin => admin.role === "admin").length;
+    const isAdmin = admin?.role === "admin";
+    
+    if (isAdmin && adminCount <= 1) {
+      toast.error("Cannot change the role of the last admin");
+      return;
+    }
+    
+    const updatedAdmins = admins.map(admin => 
+      admin.id === id 
+        ? {...admin, role: admin.role === "admin" ? "editor" : "admin"}
+        : admin
     );
-  }
+    
+    setAdmins(updatedAdmins);
+    saveToLocalStorage(updatedAdmins);
+    
+    toast.success("Admin role updated successfully");
+  };
 
   return (
     <div className="container py-8 space-y-6">
@@ -132,60 +153,126 @@ const AdminManagement = () => {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Admin Management</h1>
           <p className="text-muted-foreground">
-            Manage which email addresses have admin access
+            Manage admin access to the system
           </p>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Admin Emails</CardTitle>
-            {!isAddingEmail ? (
-              <Button onClick={() => setIsAddingEmail(true)}>
-                <Plus className="h-4 w-4 mr-2" />
+      <div className="flex justify-end">
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Add New Admin
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Admin</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Email Address</label>
+                <Input 
+                  placeholder="email@iitgn.ac.in"
+                  value={newAdminEmail}
+                  onChange={(e) => setNewAdminEmail(e.target.value)}
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  Must be an IITGN email address
+                </p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium mb-1 block">Role</label>
+                <div className="flex space-x-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="role"
+                      checked={newAdminRole === "admin"}
+                      onChange={() => setNewAdminRole("admin")}
+                      className="mr-2"
+                    />
+                    Admin (Full access)
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="role"
+                      checked={newAdminRole === "editor"}
+                      onChange={() => setNewAdminRole("editor")}
+                      className="mr-2"
+                    />
+                    Editor (Content only)
+                  </label>
+                </div>
+              </div>
+              
+              <Button className="w-full" onClick={handleAddAdmin}>
                 Add Admin
               </Button>
-            ) : null}
-          </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Admin Users</CardTitle>
         </CardHeader>
         <CardContent>
-          {isAddingEmail && (
-            <div className="mb-6 flex gap-2">
-              <Input 
-                placeholder="new.admin@iitgn.ac.in" 
-                value={newEmail} 
-                onChange={(e) => setNewEmail(e.target.value)}
-              />
-              <Button onClick={handleAddEmail}>Add</Button>
-              <Button variant="outline" onClick={() => {
-                setIsAddingEmail(false);
-                setNewEmail("");
-              }}>
-                Cancel
-              </Button>
-            </div>
-          )}
-
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Email Address</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Date Added</TableHead>
+                <TableHead className="w-24">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {adminEmails.map((email) => (
-                <TableRow key={email}>
-                  <TableCell>{email}</TableCell>
+              {admins.map((admin) => (
+                <TableRow key={admin.id} className={admin.email === currentUserEmail ? "bg-muted/50" : ""}>
+                  <TableCell className="font-medium">
+                    {admin.email}
+                    {admin.email === currentUserEmail && (
+                      <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                        You
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveEmail(email)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      admin.role === "admin" 
+                        ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300" 
+                        : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                    }`}>
+                      {admin.role === "admin" ? "Admin" : "Editor"}
+                    </span>
+                  </TableCell>
+                  <TableCell>{admin.dateAdded}</TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => toggleAdminRole(admin.id)}
+                        disabled={admin.email === currentUserEmail}
+                        title={admin.email === currentUserEmail ? "Cannot change your own role" : "Change role"}
+                      >
+                        <Shield className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveAdmin(admin.id, admin.email)}
+                        disabled={admin.email === currentUserEmail}
+                        title={admin.email === currentUserEmail ? "Cannot remove yourself" : "Remove admin"}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

@@ -11,6 +11,8 @@ import BusSchedule from "./pages/BusSchedule";
 import MessMenu from "./pages/MessMenu";
 import MessQR from "./pages/MessQR";
 import FoodOutlets from "./pages/FoodOutlets";
+import CampusMap from "./pages/CampusMap";
+import Events from "./pages/Events";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -38,6 +40,8 @@ const App = () => (
               <Route path="/mess-menu" element={<MessMenu />} />
               <Route path="/mess-qr" element={<MessQR />} />
               <Route path="/food-outlets" element={<FoodOutlets />} />
+              <Route path="/campus-map" element={<CampusMap />} />
+              <Route path="/events" element={<Events />} />
               <Route path="/login" element={<Login />} />
               
               {/* Admin Routes */}

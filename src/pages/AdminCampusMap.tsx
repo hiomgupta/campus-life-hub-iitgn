@@ -1,55 +1,81 @@
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowLeft, Upload, MapPin, Save, Image } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, Upload, Save, MapPin, Image, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+
+interface CampusMapImage {
+  id: string;
+  name: string;
+  description: string;
+  dataUrl: string;
+}
 
 const AdminCampusMap = () => {
   const navigate = useNavigate();
-  const [selectedMap, setSelectedMap] = useState<File | null>(null);
-  const [mapPreview, setMapPreview] = useState<string | null>(null);
-  const [savedMap, setSavedMap] = useState<string | null>(localStorage.getItem("campus_map"));
+  const [maps, setMaps] = useState<CampusMapImage[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const handleMapSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
+  useEffect(() => {
+    // Load data from localStorage
+    const storedData = localStorage.getItem("campus_maps_data");
+    if (storedData) {
+      setMaps(JSON.parse(storedData));
+    }
+  }, []);
+
+  const handleSaveChanges = () => {
+    localStorage.setItem("campus_maps_data", JSON.stringify(maps));
+    toast.success("Campus maps saved successfully");
+    setIsEditing(false);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
       
-      // Check file type
-      if (!file.type.match('image.*')) {
-        toast.error("Please select an image file");
-        return;
-      }
-      
-      // Check file size (limit to 2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error("File is too large. Please select an image under 2MB");
-        return;
-      }
-      
-      setSelectedMap(file);
-      
-      // Create a preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setMapPreview(e.target?.result as string);
+      // Create a new map object
+      const newMap: CampusMapImage = {
+        id: `map-${Date.now()}`,
+        name: file.name.split('.')[0], // Use filename without extension
+        description: "Campus map description",
+        dataUrl
       };
-      reader.readAsDataURL(file);
+      
+      setMaps([...maps, newMap]);
+      setIsEditing(true);
+    };
+    
+    reader.readAsDataURL(file);
+    
+    // Reset the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
-  
-  const handleSaveMap = () => {
-    if (mapPreview) {
-      localStorage.setItem("campus_map", mapPreview);
-      setSavedMap(mapPreview);
-      toast.success("Campus map updated successfully");
-      setSelectedMap(null);
-      setMapPreview(null);
-    }
+
+  const handleRemoveMap = (id: string) => {
+    setMaps(maps.filter(map => map.id !== id));
+    setIsEditing(true);
   };
-  
+
+  const handleUpdateMapField = (index: number, field: keyof CampusMapImage, value: string) => {
+    const updatedMaps = [...maps];
+    updatedMaps[index][field] = value;
+    setMaps(updatedMaps);
+    setIsEditing(true);
+  };
+
   return (
     <div className="container py-8 space-y-6">
       <div className="flex items-center">
@@ -62,103 +88,105 @@ const AdminCampusMap = () => {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Campus Map</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Campus Map Editor</h1>
           <p className="text-muted-foreground">
-            Upload and manage campus maps
+            Upload and update campus maps
           </p>
         </div>
       </div>
 
+      {isEditing && (
+        <div className="flex justify-end">
+          <Button onClick={handleSaveChanges}>
+            <Save className="h-4 w-4 mr-2" />
+            Save Changes
+          </Button>
+        </div>
+      )}
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Upload Map</CardTitle>
-            <CardDescription>
-              Upload an image file of the campus map. For best results, use a clear, high-resolution image.
-            </CardDescription>
+            <CardTitle className="flex items-center">
+              <MapPin className="h-5 w-5 mr-2" />
+              Upload New Map
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="border-2 border-dashed rounded-md p-6 flex flex-col items-center justify-center">
-                <MapPin className="h-10 w-10 text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground mb-4">
-                  Drag and drop or click to select a map image
-                </p>
-                <Input 
-                  type="file" 
-                  accept="image/*"
-                  onChange={handleMapSelect}
-                  className="max-w-xs"
-                />
-              </div>
-              
-              {mapPreview && (
-                <div className="space-y-4">
-                  <h3 className="font-medium">Preview:</h3>
-                  <div className="border rounded-md overflow-hidden">
-                    <img 
-                      src={mapPreview} 
-                      alt="Map preview" 
-                      className="w-full h-auto"
-                    />
-                  </div>
-                  <Button onClick={handleSaveMap} className="w-full">
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Map
-                  </Button>
-                </div>
-              )}
+            <div className="border border-dashed rounded-lg p-8 text-center">
+              <Image className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="mb-2 font-medium">Upload map image</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                PNG, JPG or SVG (max. 5MB)
+              </p>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileUpload}
+                ref={fileInputRef}
+              />
+              <Button 
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Select File
+              </Button>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
-            <CardTitle>Current Map</CardTitle>
-            <CardDescription>
-              The currently active campus map
-            </CardDescription>
+            <CardTitle>Existing Maps</CardTitle>
           </CardHeader>
           <CardContent>
-            {savedMap ? (
-              <div className="border rounded-md overflow-hidden">
-                <img 
-                  src={savedMap} 
-                  alt="Current campus map" 
-                  className="w-full h-auto"
-                />
+            {maps.length === 0 ? (
+              <div className="text-center py-8">
+                <MapPin className="h-10 w-10 mx-auto text-muted-foreground opacity-50" />
+                <p className="mt-4 text-muted-foreground">No maps uploaded yet</p>
               </div>
             ) : (
-              <div className="border rounded-md p-12 flex flex-col items-center justify-center text-muted-foreground">
-                <Image className="h-16 w-16 mb-4 opacity-30" />
-                <p>No map has been uploaded yet</p>
+              <div className="space-y-4">
+                {maps.map((map, index) => (
+                  <div key={map.id} className="border rounded-md p-4">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="space-y-2 w-full mr-4">
+                        <Input 
+                          value={map.name}
+                          onChange={(e) => handleUpdateMapField(index, 'name', e.target.value)}
+                          className="font-medium"
+                          placeholder="Map name"
+                        />
+                        <Input 
+                          value={map.description}
+                          onChange={(e) => handleUpdateMapField(index, 'description', e.target.value)}
+                          placeholder="Map description"
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveMap(map.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                    <div className="border rounded overflow-hidden h-40">
+                      <img 
+                        src={map.dataUrl} 
+                        alt={map.name}
+                        className="object-cover w-full h-full"
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>
         </Card>
       </div>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Map Usage Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <p>
-              The uploaded map will be available to all users of the campus app. Here are some recommendations for maps:
-            </p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>Use a high-resolution image for clarity on all devices</li>
-              <li>Include building names and important landmarks</li>
-              <li>For interactive maps, consider adding labeled markers for key locations</li>
-              <li>Use color coding to distinguish between different types of buildings</li>
-            </ul>
-            <p className="text-sm text-muted-foreground mt-4">
-              In a full implementation, this could be extended to include interactive elements, location markers, search capabilities, and navigation.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };
