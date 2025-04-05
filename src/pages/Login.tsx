@@ -9,9 +9,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Mail } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AdminUser } from "@/types";
+import { AdminUser, UserProfile } from "@/types";
 
 // Basic admin emails list - in a real app this would come from a secure backend
 const ADMIN_EMAILS = [
@@ -89,6 +88,7 @@ const Login = () => {
         ...DEFAULT_CLUB_ADMINS
       ];
       localStorage.setItem("admin_users", JSON.stringify(defaultAdmins));
+      console.log("Initialized admin users:", defaultAdmins);
     }
     
     // Initialize default student profile if not already set
@@ -110,6 +110,7 @@ const Login = () => {
         bookmarks: []
       };
       localStorage.setItem(`user_profile_${DEFAULT_STUDENT.email}`, JSON.stringify(userProfile));
+      console.log("Initialized student profile:", userProfile);
     }
   }, [navigate]);
 
@@ -125,21 +126,35 @@ const Login = () => {
     
     // Simulate authentication check
     setTimeout(() => {
+      console.log("Login attempt with email:", values.email);
+      console.log("Authentication option:", authOption);
+      
       // For admin login
       if (authOption === "admin") {
         const storedAdmins = localStorage.getItem("admin_users");
+        console.log("Stored admins:", storedAdmins);
+        
         const adminList: AdminUser[] = storedAdmins 
           ? JSON.parse(storedAdmins) 
           : [];
         
+        console.log("Parsed admin list:", adminList);
+        
         const adminUser = adminList.find(admin => admin.email === values.email);
+        console.log("Found admin user:", adminUser);
         
         if (adminUser) {
           localStorage.setItem("admin_email", values.email);
           localStorage.setItem("user_email", values.email);
           localStorage.setItem("user_role", adminUser.role);
-          localStorage.setItem("club_id", adminUser.clubId || "");
-          localStorage.setItem("club_name", adminUser.clubName || "");
+          
+          if (adminUser.clubId) {
+            localStorage.setItem("club_id", adminUser.clubId);
+          }
+          
+          if (adminUser.clubName) {
+            localStorage.setItem("club_name", adminUser.clubName);
+          }
           
           toast.success(`Login successful as ${adminUser.role}`);
           
@@ -193,6 +208,8 @@ const Login = () => {
         name: authOption === "admin" ? "Admin User" : "Aryan Sharma",
       };
       
+      console.log("Google login with:", mockGoogleUser);
+      
       // Check if admin
       if (authOption === "admin") {
         const storedAdmins = localStorage.getItem("admin_users");
@@ -200,15 +217,24 @@ const Login = () => {
           ? JSON.parse(storedAdmins) 
           : [];
         
+        console.log("Parsed admin list for Google login:", adminList);
+        
         const adminUser = adminList.find(admin => admin.email === mockGoogleUser.email);
+        console.log("Found admin for Google login:", adminUser);
         
         if (adminUser) {
           localStorage.setItem("admin_email", mockGoogleUser.email);
           localStorage.setItem("user_email", mockGoogleUser.email);
           localStorage.setItem("user_name", mockGoogleUser.name);
           localStorage.setItem("user_role", adminUser.role);
-          localStorage.setItem("club_id", adminUser.clubId || "");
-          localStorage.setItem("club_name", adminUser.clubName || "");
+          
+          if (adminUser.clubId) {
+            localStorage.setItem("club_id", adminUser.clubId);
+          }
+          
+          if (adminUser.clubName) {
+            localStorage.setItem("club_name", adminUser.clubName);
+          }
           
           toast.success(`Google login successful as ${adminUser.role}`);
           

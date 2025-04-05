@@ -91,7 +91,7 @@ export interface UserProfile {
   id: string;
   name: string;
   email: string;
-  role: 'student' | 'coordinator' | 'admin';
+  role: 'student' | 'coordinator' | 'admin' | 'clubAdmin';
   rollNumber?: string;
   program?: string;
   year?: string;

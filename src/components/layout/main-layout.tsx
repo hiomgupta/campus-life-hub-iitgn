@@ -1,12 +1,13 @@
 
 import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import { SidebarNav } from "./sidebar-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Bell } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { HeaderActions } from "./header-actions";
 
 export function MainLayout() {
   const isMobile = useIsMobile();
@@ -25,11 +26,8 @@ export function MainLayout() {
               <SidebarNav />
             </div>
             <div className="flex items-center justify-between p-4 border-t">
-              <Button variant="outline" size="sm">
-                <Bell className="h-4 w-4 mr-2" />
-                <span className="text-xs">Notifications</span>
-              </Button>
               <ThemeToggle />
+              <HeaderActions />
             </div>
           </div>
         </div>
@@ -63,11 +61,8 @@ export function MainLayout() {
               <SidebarNav />
             </div>
             <div className="flex items-center justify-between p-4 border-t">
-              <Button variant="outline" size="sm">
-                <Bell className="h-4 w-4 mr-2" />
-                <span className="text-xs">Notifications</span>
-              </Button>
               <ThemeToggle />
+              <HeaderActions />
             </div>
           </SheetContent>
         </Sheet>
@@ -77,9 +72,10 @@ export function MainLayout() {
       <div className={`flex flex-col ${!isMobile ? "md:pl-64" : ""} flex-1`}>
         {/* Mobile header */}
         {isMobile && (
-          <div className="sticky top-0 z-10 flex items-center justify-center h-12 bg-background/80 backdrop-blur-sm border-b">
+          <div className="sticky top-0 z-10 flex items-center justify-between h-12 bg-background/80 backdrop-blur-sm border-b px-4">
             <h1 className="text-lg font-bold">Campus Life Hub</h1>
-            <div className="absolute right-4">
+            <div className="flex items-center gap-2">
+              <HeaderActions />
               <ThemeToggle />
             </div>
           </div>

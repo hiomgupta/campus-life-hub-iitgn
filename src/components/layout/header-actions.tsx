@@ -1,10 +1,11 @@
 
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { User, LogOut, UserCircle } from "lucide-react";
+import { User, LogOut, UserCircle, Settings, Book, Calendar } from "lucide-react";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -69,6 +70,15 @@ export function HeaderActions() {
     navigate("/login");
   };
   
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+  
   return (
     <div className="flex items-center gap-2">
       {isLoggedIn && <NotificationBell />}
@@ -79,26 +89,40 @@ export function HeaderActions() {
             <Button
               variant="ghost"
               size="sm"
-              className="gap-2"
+              className="gap-2 flex items-center"
             >
-              <UserCircle className="h-5 w-5" />
-              <span className="hidden sm:inline">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-primary text-primary-foreground">
+                  {userName ? getInitials(userName) : 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <span className="hidden sm:inline font-medium">
                 {userName || "Account"}
               </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuLabel>{userName || "My Account"}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleDashboardClick}>
-              <User className="mr-2 h-4 w-4" />
+              <Settings className="mr-2 h-4 w-4" />
               Dashboard
             </DropdownMenuItem>
             {userRole === "student" && (
-              <DropdownMenuItem onClick={handleProfileClick}>
-                <UserCircle className="mr-2 h-4 w-4" />
-                Profile
-              </DropdownMenuItem>
+              <>
+                <DropdownMenuItem onClick={handleProfileClick}>
+                  <UserCircle className="mr-2 h-4 w-4" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/events')}>
+                  <Calendar className="mr-2 h-4 w-4" />
+                  My Events
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/user/profile')}>
+                  <Book className="mr-2 h-4 w-4" />
+                  Bookmarks
+                </DropdownMenuItem>
+              </>
             )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogoutClick}>
