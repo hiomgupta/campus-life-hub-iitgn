@@ -50,3 +50,40 @@ export interface AdminUser {
   role: 'admin' | 'editor';
   dateAdded: string;
 }
+
+// New types for the enhanced features
+export interface ClubInfo {
+  id: string;
+  name: string;
+  description: string;
+  category: 'technical' | 'cultural' | 'sports' | 'academic' | 'other';
+  coordinators: string[];
+  members: string[];
+  logo?: string;
+}
+
+export interface Notice {
+  id: string;
+  title: string;
+  content: string;
+  category: 'academic' | 'fee' | 'club' | 'campus' | 'emergency' | 'other';
+  date: string;
+  postedBy: string;
+  important: boolean;
+}
+
+export interface EventRegistration {
+  eventId: string;
+  userId: string;
+  registrationDate: string;
+  status: 'registered' | 'waitlisted' | 'cancelled';
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: 'student' | 'coordinator' | 'admin';
+  clubMemberships: string[];
+  interests: string[];
+}

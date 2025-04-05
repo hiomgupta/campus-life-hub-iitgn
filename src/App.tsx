@@ -13,6 +13,8 @@ import MessQR from "./pages/MessQR";
 import FoodOutlets from "./pages/FoodOutlets";
 import CampusMap from "./pages/CampusMap";
 import Events from "./pages/Events";
+import Clubs from "./pages/Clubs";
+import NoticeBoard from "./pages/NoticeBoard";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -22,6 +24,8 @@ import AdminMessMenu from "./pages/AdminMessMenu";
 import AdminFoodOutlets from "./pages/AdminFoodOutlets";
 import AdminCampusMap from "./pages/AdminCampusMap";
 import AdminManagement from "./pages/AdminManagement";
+import AdminClubs from "./pages/AdminClubs";
+import AdminNotices from "./pages/AdminNotices";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -42,6 +46,8 @@ const App = () => (
               <Route path="/food-outlets" element={<FoodOutlets />} />
               <Route path="/campus-map" element={<CampusMap />} />
               <Route path="/events" element={<Events />} />
+              <Route path="/clubs" element={<Clubs />} />
+              <Route path="/notice-board" element={<NoticeBoard />} />
               <Route path="/login" element={<Login />} />
               
               {/* Admin Routes */}
@@ -53,6 +59,8 @@ const App = () => (
                 <Route path="/admin/food-outlets" element={<AdminFoodOutlets />} />
                 <Route path="/admin/campus-map" element={<AdminCampusMap />} />
                 <Route path="/admin/manage-admins" element={<AdminManagement />} />
+                <Route path="/admin/clubs" element={<AdminClubs />} />
+                <Route path="/admin/notices" element={<AdminNotices />} />
               </Route>
               
               <Route path="*" element={<NotFound />} />

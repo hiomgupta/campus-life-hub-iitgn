@@ -9,6 +9,8 @@ import {
   Clock,
   QrCode,
   Utensils,
+  Bell,
+  Users,
   LucideIcon
 } from "lucide-react";
 
@@ -28,6 +30,16 @@ const navItems: NavItem[] = [
     title: "Events",
     href: "/events",
     icon: CalendarDays,
+  },
+  {
+    title: "Notice Board",
+    href: "/notice-board",
+    icon: Bell,
+  },
+  {
+    title: "Clubs",
+    href: "/clubs",
+    icon: Users,
   },
   {
     title: "Bus Schedule",

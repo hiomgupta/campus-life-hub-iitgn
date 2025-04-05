@@ -34,10 +34,22 @@ const AdminDashboard = () => {
       path: "/admin/bus-schedule"
     },
     {
-      title: "What's On Campus",
-      description: "Manage campus activities and events",
-      icon: <Bell className="h-8 w-8" />,
+      title: "Campus Activities",
+      description: "Manage campus events",
+      icon: <CalendarDays className="h-8 w-8" />,
       path: "/admin/campus-activities"
+    },
+    {
+      title: "Notice Board",
+      description: "Post announcements & alerts",
+      icon: <Bell className="h-8 w-8" />,
+      path: "/admin/notices"
+    },
+    {
+      title: "Clubs & Organizations",
+      description: "Manage student clubs",
+      icon: <Users className="h-8 w-8" />,
+      path: "/admin/clubs"
     },
     {
       title: "Mess Menu",
@@ -60,7 +72,7 @@ const AdminDashboard = () => {
     {
       title: "Admin Management",
       description: "Manage admin access",
-      icon: <Users className="h-8 w-8" />,
+      icon: <Settings className="h-8 w-8" />,
       path: "/admin/manage-admins"
     },
   ];
