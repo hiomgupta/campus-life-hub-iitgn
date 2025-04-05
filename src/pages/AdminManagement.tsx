@@ -136,13 +136,13 @@ const AdminManagement = () => {
               
               <div className="grid gap-2">
                 <Label htmlFor="role">Role</Label>
-                <Select value={newAdminRole} onValueChange={(value: "admin" | "editor") => setNewAdminRole(value)}>
+                <Select value={newAdminRole} onValueChange={(value: "admin" | "clubAdmin") => setNewAdminRole(value)}>
                   <SelectTrigger id="role">
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Administrator (Full access)</SelectItem>
-                    <SelectItem value="editor">Editor (Content management only)</SelectItem>
+                    <SelectItem value="clubAdmin">Club Admin (Content management only)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
