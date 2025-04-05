@@ -16,7 +16,7 @@ const AdminManagement = () => {
   const navigate = useNavigate();
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [newAdminEmail, setNewAdminEmail] = useState("");
-  const [newAdminRole, setNewAdminRole] = useState<"admin" | "editor">("editor");
+  const [newAdminRole, setNewAdminRole] = useState<"admin" | "clubAdmin">("clubAdmin");
   const [dialogOpen, setDialogOpen] = useState(false);
   
   useEffect(() => {
@@ -72,7 +72,7 @@ const AdminManagement = () => {
     
     toast.success("Admin added successfully");
     setNewAdminEmail("");
-    setNewAdminRole("editor");
+    setNewAdminRole("clubAdmin");
     setDialogOpen(false);
   };
   

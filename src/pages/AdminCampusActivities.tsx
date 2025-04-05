@@ -103,13 +103,18 @@ const AdminCampusActivities = () => {
   }, [navigate, isDialogOpen, form]);
   
   const onSubmit = (data: z.infer<typeof FormSchema>) => {
-    const activityData = {
-      ...data,
+    const activityData: CampusActivity = {
       id: editingActivity?.id || Math.random().toString(),
+      title: data.title,
+      description: data.description,
       date: format(data.date, "yyyy-MM-dd"),
+      time: data.time,
+      location: data.location,
+      category: data.category,
       addedBy: userEmail || "admin@iitgn.ac.in",
       clubId: clubId || undefined,
       clubName: clubName || undefined,
+      imageUrl: data.imageUrl
     };
     
     if (editingActivity) {

@@ -43,8 +43,8 @@ export type MessDay = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday'
 export type MealType = 'breakfast' | 'lunch' | 'dinner';
 
 export interface MessMenuType {
-  [key in MessDay]: {
-    [key in MealType]: string[];
+  [key: string]: {
+    [key: string]: string[];
   };
 }
 
@@ -110,4 +110,3 @@ export interface Notification {
   clubId?: string;
   clubName?: string;
 }
-
