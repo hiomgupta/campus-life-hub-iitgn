@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,26 @@ const ADMIN_EMAILS = [
   "admin@iitgn.ac.in",
   "webadmin@iitgn.ac.in",
   "coordinator@iitgn.ac.in"
+];
+
+// Default club admin data
+const DEFAULT_CLUB_ADMINS = [
+  {
+    id: "club1",
+    email: "cultural@iitgn.ac.in",
+    role: "clubAdmin",
+    dateAdded: "2025-01-01",
+    clubId: "c1",
+    clubName: "Cultural Club"
+  },
+  {
+    id: "club2",
+    email: "technical@iitgn.ac.in",
+    role: "clubAdmin",
+    dateAdded: "2025-01-01",
+    clubId: "c2",
+    clubName: "Technical Club"
+  }
 ];
 
 const formSchema = z.object({
@@ -43,6 +62,21 @@ const Login = () => {
         navigate("/");
       }
     }
+    
+    // Initialize admin users if not already set
+    const storedAdmins = localStorage.getItem("admin_users");
+    if (!storedAdmins) {
+      const defaultAdmins = [
+        ...ADMIN_EMAILS.map(email => ({
+          id: Math.random().toString(),
+          email,
+          role: "admin",
+          dateAdded: new Date().toISOString().split("T")[0]
+        })),
+        ...DEFAULT_CLUB_ADMINS
+      ];
+      localStorage.setItem("admin_users", JSON.stringify(defaultAdmins));
+    }
   }, [navigate]);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -62,17 +96,13 @@ const Login = () => {
         const storedAdmins = localStorage.getItem("admin_users");
         const adminList: AdminUser[] = storedAdmins 
           ? JSON.parse(storedAdmins) 
-          : ADMIN_EMAILS.map(email => ({
-              id: Math.random().toString(),
-              email,
-              role: "admin",
-              dateAdded: new Date().toISOString().split("T")[0]
-            }));
+          : [];
         
         const adminUser = adminList.find(admin => admin.email === values.email);
         
         if (adminUser) {
           localStorage.setItem("admin_email", values.email);
+          localStorage.setItem("user_email", values.email);
           localStorage.setItem("user_role", adminUser.role);
           localStorage.setItem("club_id", adminUser.clubId || "");
           localStorage.setItem("club_name", adminUser.clubName || "");
@@ -94,6 +124,7 @@ const Login = () => {
       else {
         if (values.email.endsWith("iitgn.ac.in")) {
           localStorage.setItem("user_email", values.email);
+          localStorage.setItem("user_name", values.email.split("@")[0]);
           localStorage.setItem("user_role", "student");
           toast.success("Student login successful");
           navigate("/");
@@ -124,12 +155,7 @@ const Login = () => {
         const storedAdmins = localStorage.getItem("admin_users");
         const adminList: AdminUser[] = storedAdmins 
           ? JSON.parse(storedAdmins) 
-          : ADMIN_EMAILS.map(email => ({
-              id: Math.random().toString(),
-              email,
-              role: "admin",
-              dateAdded: new Date().toISOString().split("T")[0]
-            }));
+          : [];
         
         const adminUser = adminList.find(admin => admin.email === mockGoogleUser.email);
         

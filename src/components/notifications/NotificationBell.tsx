@@ -1,12 +1,13 @@
 
 import { useState, useEffect } from "react";
-import { Bell, X } from "lucide-react";
+import { Bell, X, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Notification } from "@/types";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const NotificationItem = ({ notification, onMarkAsRead }: { 
   notification: Notification, 
@@ -35,6 +36,9 @@ const NotificationItem = ({ notification, onMarkAsRead }: {
           <div>
             <p className="text-sm font-medium">{notification.title}</p>
             <p className="text-xs text-muted-foreground">{notification.message}</p>
+            {notification.clubName && (
+              <p className="text-xs font-medium mt-1">From: {notification.clubName}</p>
+            )}
           </div>
         </div>
         {!notification.read && (
@@ -58,40 +62,51 @@ const NotificationItem = ({ notification, onMarkAsRead }: {
 const NotificationBell = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
   
   useEffect(() => {
     const loadNotifications = () => {
       const userId = localStorage.getItem("user_email") || "";
       if (!userId) return;
       
-      const storedNotifications = localStorage.getItem(`notifications_${userId}`);
-      if (storedNotifications) {
-        setNotifications(JSON.parse(storedNotifications));
+      // Get all notifications
+      const allNotifications = localStorage.getItem("all_notifications");
+      let notificationList: Notification[] = [];
+      
+      if (allNotifications) {
+        const parsedNotifications: Notification[] = JSON.parse(allNotifications);
+        
+        // Filter for current user (including notifications meant for all users)
+        notificationList = parsedNotifications.filter(
+          n => n.userId === userId || n.userId === "all"
+        );
       } else {
         // Create example notifications if none exist
         const exampleNotifications: Notification[] = [
           {
             id: "1",
-            userId,
+            userId: "all",
             title: "New Event Added",
             message: "Technical Club just added a new event: Hackathon 2025",
             type: "event",
             date: new Date().toISOString(),
-            read: false
+            read: false,
+            clubName: "Technical Club"
           },
           {
             id: "2",
-            userId,
+            userId: userId,
             title: "Event Reminder",
             message: "Cultural Night starts in 1 hour",
             type: "reminder",
             date: new Date().toISOString(),
             read: false,
-            relatedId: "2"
+            relatedId: "2",
+            clubName: "Cultural Club"
           },
           {
             id: "3",
-            userId,
+            userId: "all",
             title: "Urgent Notice",
             message: "Fee deadline extended to next Friday",
             type: "urgent",
@@ -99,9 +114,22 @@ const NotificationBell = () => {
             read: true
           }
         ];
-        setNotifications(exampleNotifications);
-        localStorage.setItem(`notifications_${userId}`, JSON.stringify(exampleNotifications));
+        
+        notificationList = exampleNotifications;
+        localStorage.setItem("all_notifications", JSON.stringify(exampleNotifications));
       }
+      
+      // Get read status for this user
+      const readStatus = localStorage.getItem(`notification_read_${userId}`);
+      const readIds = readStatus ? JSON.parse(readStatus) : [];
+      
+      // Mark notifications as read based on user's read status
+      notificationList = notificationList.map(notification => ({
+        ...notification,
+        read: readIds.includes(notification.id) ? true : notification.read
+      }));
+      
+      setNotifications(notificationList);
     };
     
     loadNotifications();
@@ -110,8 +138,8 @@ const NotificationBell = () => {
     const interval = setInterval(() => {
       const unreadCount = notifications.filter(n => !n.read).length;
       if (unreadCount > 0 && !open) {
-        // Play notification sound or show toast for new notifications
-        // This is just a placeholder - in a real app you'd check for new ones from a backend
+        // This would play notification sound or show toast for new notifications
+        // in a real app with a backend
       }
     }, 60000);
     
@@ -121,34 +149,53 @@ const NotificationBell = () => {
   const unreadCount = notifications.filter(n => !n.read).length;
   
   const handleMarkAsRead = (id: string) => {
+    const userId = localStorage.getItem("user_email") || "";
+    if (!userId) return;
+    
+    // Get current read status
+    const readStatus = localStorage.getItem(`notification_read_${userId}`);
+    const readIds = readStatus ? JSON.parse(readStatus) : [];
+    
+    // Add this notification to read list
+    if (!readIds.includes(id)) {
+      const updatedReadIds = [...readIds, id];
+      localStorage.setItem(`notification_read_${userId}`, JSON.stringify(updatedReadIds));
+    }
+    
+    // Update UI
     const updatedNotifications = notifications.map(notification => 
       notification.id === id ? { ...notification, read: true } : notification
     );
     
     setNotifications(updatedNotifications);
-    
-    // Update in localStorage
-    const userId = localStorage.getItem("user_email") || "";
-    if (userId) {
-      localStorage.setItem(`notifications_${userId}`, JSON.stringify(updatedNotifications));
-    }
   };
   
   const handleMarkAllAsRead = () => {
+    const userId = localStorage.getItem("user_email") || "";
+    if (!userId) return;
+    
+    // Get IDs of all notifications for this user
+    const notificationIds = notifications.map(n => n.id);
+    
+    // Update read status in localStorage
+    localStorage.setItem(`notification_read_${userId}`, JSON.stringify(notificationIds));
+    
+    // Update UI
     const updatedNotifications = notifications.map(notification => ({
       ...notification,
       read: true
     }));
     
     setNotifications(updatedNotifications);
-    
-    // Update in localStorage
-    const userId = localStorage.getItem("user_email") || "";
-    if (userId) {
-      localStorage.setItem(`notifications_${userId}`, JSON.stringify(updatedNotifications));
-    }
-    
     toast.success("All notifications marked as read");
+  };
+  
+  const handleCreateNotification = () => {
+    const userRole = localStorage.getItem("user_role");
+    
+    if (userRole === "admin" || userRole === "clubAdmin") {
+      navigate("/admin/notices");
+    }
   };
 
   return (
@@ -169,16 +216,30 @@ const NotificationBell = () => {
       <PopoverContent className="w-80 p-0" align="end">
         <div className="flex items-center justify-between p-2 border-b">
           <h3 className="font-medium text-sm">Notifications</h3>
-          {unreadCount > 0 && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-7 text-xs" 
-              onClick={handleMarkAllAsRead}
-            >
-              Mark all as read
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {unreadCount > 0 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-7 text-xs" 
+                onClick={handleMarkAllAsRead}
+              >
+                Mark all as read
+              </Button>
+            )}
+            {(localStorage.getItem("user_role") === "admin" || 
+             localStorage.getItem("user_role") === "clubAdmin") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={handleCreateNotification}
+              >
+                <Info className="h-3 w-3 mr-1" />
+                Manage Notifications
+              </Button>
+            )}
+          </div>
         </div>
         
         {notifications.length === 0 ? (

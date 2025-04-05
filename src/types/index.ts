@@ -19,6 +19,7 @@ export interface CampusActivity {
   category: string;
   addedBy?: string;
   clubId?: string;
+  clubName?: string;
   imageUrl?: string;
 }
 
@@ -50,7 +51,7 @@ export interface MessMenuType {
 export interface AdminUser {
   id: string;
   email: string;
-  role: 'admin' | 'editor' | 'clubAdmin';
+  role: 'admin' | 'clubAdmin';
   dateAdded: string;
   clubId?: string;
   clubName?: string;
@@ -76,6 +77,7 @@ export interface Notice {
   postedBy: string;
   important: boolean;
   clubId?: string;
+  clubName?: string;
 }
 
 export interface EventRegistration {
@@ -97,11 +99,15 @@ export interface UserProfile {
 
 export interface Notification {
   id: string;
-  userId: string;
+  userId: string; // can be "all" for all users
   title: string;
   message: string;
   type: 'event' | 'notice' | 'reminder' | 'urgent';
   date: string;
   read: boolean;
   relatedId?: string; // ID of related event or notice
+  addedBy?: string; // who added this notification
+  clubId?: string;
+  clubName?: string;
 }
+

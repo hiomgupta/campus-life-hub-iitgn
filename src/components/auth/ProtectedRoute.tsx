@@ -33,7 +33,7 @@ const ProtectedRoute = ({ requiredRole }: ProtectedRouteProps = {}) => {
   // If role is required but user doesn't have the right role
   if (requiredRole && userRole !== requiredRole) {
     // If regular user trying to access admin pages
-    if (requiredRole === 'admin' && userRole === 'student') {
+    if ((requiredRole === 'admin' || requiredRole === 'clubAdmin') && userRole === 'student') {
       return <Navigate to="/" replace />;
     }
     
