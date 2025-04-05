@@ -40,6 +40,18 @@ const DEFAULT_CLUB_ADMINS = [
   }
 ];
 
+// Add a default student user
+const DEFAULT_STUDENT = {
+  email: "aryan.s@iitgn.ac.in",
+  name: "Aryan Sharma",
+  rollNumber: "21CS1001",
+  program: "B.Tech Computer Science",
+  year: "3rd Year",
+  phone: "+91 9876543210",
+  hostel: "Dhanush Hostel, Room 203",
+  joinedDate: "July 2021"
+};
+
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email").endsWith("iitgn.ac.in", "Must be an IITGN email address"),
 });
@@ -77,6 +89,27 @@ const Login = () => {
         ...DEFAULT_CLUB_ADMINS
       ];
       localStorage.setItem("admin_users", JSON.stringify(defaultAdmins));
+    }
+    
+    // Initialize default student profile if not already set
+    const storedStudentProfile = localStorage.getItem(`user_profile_${DEFAULT_STUDENT.email}`);
+    if (!storedStudentProfile) {
+      const userProfile = {
+        id: Math.random().toString(),
+        email: DEFAULT_STUDENT.email,
+        name: DEFAULT_STUDENT.name,
+        rollNumber: DEFAULT_STUDENT.rollNumber,
+        program: DEFAULT_STUDENT.program,
+        year: DEFAULT_STUDENT.year,
+        phone: DEFAULT_STUDENT.phone,
+        hostel: DEFAULT_STUDENT.hostel,
+        joinedDate: DEFAULT_STUDENT.joinedDate,
+        role: "student",
+        clubMemberships: ["Technical Club", "Photography Club"],
+        interests: ["Coding", "Photography", "Reading"],
+        bookmarks: []
+      };
+      localStorage.setItem(`user_profile_${DEFAULT_STUDENT.email}`, JSON.stringify(userProfile));
     }
   }, [navigate]);
 
@@ -125,10 +158,19 @@ const Login = () => {
       else {
         if (values.email.endsWith("iitgn.ac.in")) {
           localStorage.setItem("user_email", values.email);
-          localStorage.setItem("user_name", values.email.split("@")[0]);
+          
+          // Check if there's a user profile, use that data if available
+          const storedUserProfile = localStorage.getItem(`user_profile_${values.email}`);
+          if (storedUserProfile) {
+            const userProfile = JSON.parse(storedUserProfile);
+            localStorage.setItem("user_name", userProfile.name || values.email.split("@")[0]);
+          } else {
+            localStorage.setItem("user_name", values.email.split("@")[0]);
+          }
+          
           localStorage.setItem("user_role", "student");
           toast.success("Student login successful");
-          navigate("/");
+          navigate("/user/dashboard");
         } else {
           toast.error("Only IITGN emails are allowed");
         }
@@ -147,8 +189,8 @@ const Login = () => {
       const mockGoogleUser = {
         email: authOption === "admin" 
           ? "admin@iitgn.ac.in" 
-          : "student123@iitgn.ac.in",
-        name: authOption === "admin" ? "Admin User" : "Student User",
+          : "aryan.s@iitgn.ac.in",
+        name: authOption === "admin" ? "Admin User" : "Aryan Sharma",
       };
       
       // Check if admin
@@ -185,7 +227,7 @@ const Login = () => {
         localStorage.setItem("user_name", mockGoogleUser.name);
         localStorage.setItem("user_role", "student");
         toast.success("Student login successful via Google");
-        navigate("/");
+        navigate("/user/dashboard");
       }
       
       setIsLoading(false);

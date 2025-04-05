@@ -92,6 +92,12 @@ export interface UserProfile {
   name: string;
   email: string;
   role: 'student' | 'coordinator' | 'admin';
+  rollNumber?: string;
+  program?: string;
+  year?: string;
+  phone?: string;
+  hostel?: string;
+  joinedDate?: string;
   clubMemberships: string[];
   interests: string[];
   bookmarks: string[]; // Event or notice IDs that are bookmarked

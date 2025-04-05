@@ -16,6 +16,7 @@ import Events from "./pages/Events";
 import Clubs from "./pages/Clubs";
 import NoticeBoard from "./pages/NoticeBoard";
 import UserDashboard from "./pages/UserDashboard";
+import UserProfile from "./pages/UserProfile";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -54,6 +55,7 @@ const App = () => (
               {/* Student Protected Routes */}
               <Route element={<ProtectedRoute requiredRole="student" />}>
                 <Route path="/user/dashboard" element={<UserDashboard />} />
+                <Route path="/user/profile" element={<UserProfile />} />
               </Route>
               
               {/* Admin and Club Admin Routes */}
