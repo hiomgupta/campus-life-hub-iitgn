@@ -136,11 +136,7 @@ const NotificationBell = () => {
     
     // Check for new notifications every minute
     const interval = setInterval(() => {
-      const unreadCount = notifications.filter(n => !n.read).length;
-      if (unreadCount > 0 && !open) {
-        // This would play notification sound or show toast for new notifications
-        // in a real app with a backend
-      }
+      loadNotifications();
     }, 60000);
     
     return () => clearInterval(interval);
