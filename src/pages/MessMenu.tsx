@@ -118,6 +118,7 @@ const MessMenu = () => {
         defaultValue={getCurrentDay()} 
         className="w-full" 
         onValueChange={setActiveDay}
+        value={activeDay}
       >
         <div className="overflow-x-auto pb-2">
           <TabsList className="inline-flex w-full sm:w-auto">

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bus, Clock, Search, Calendar } from "lucide-react";
+import { Bus, Clock, Search, Calendar, MapPin } from "lucide-react";
 import { busScheduleData } from "@/data/mock-data";
 
 const BusSchedule = () => {
@@ -140,7 +140,7 @@ const BusSchedule = () => {
               <TabsContent value="map" className="pt-4">
                 <div className="border rounded-lg overflow-hidden h-96 flex items-center justify-center bg-muted">
                   <div className="text-center p-6">
-                    <Map className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
+                    <MapPin className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
                     <h3 className="font-medium">Bus Route Map</h3>
                     <p className="text-sm text-muted-foreground mt-1">
                       Visual map of bus routes coming soon
