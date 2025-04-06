@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { SidebarNav } from "./sidebar-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,14 @@ import { HeaderActions } from "./header-actions";
 export function MainLayout() {
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
+
+  // Close sidebar on route change
+  const closeSidebar = () => {
+    if (sidebarOpen) {
+      setSidebarOpen(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen">
@@ -23,7 +31,7 @@ export function MainLayout() {
               <h1 className="text-xl font-bold">Campus Life Hub</h1>
             </div>
             <div className="flex-1 flex flex-col overflow-y-auto pt-5 pb-4 px-3">
-              <SidebarNav />
+              <SidebarNav onNavItemClick={closeSidebar} />
             </div>
             <div className="flex items-center justify-between p-4 border-t">
               <ThemeToggle />
@@ -58,7 +66,7 @@ export function MainLayout() {
               </Button>
             </div>
             <div className="flex-1 flex flex-col overflow-y-auto pt-5 pb-4 px-3">
-              <SidebarNav />
+              <SidebarNav onNavItemClick={closeSidebar} />
             </div>
             <div className="flex items-center justify-between p-4 border-t">
               <ThemeToggle />
@@ -73,7 +81,9 @@ export function MainLayout() {
         {/* Mobile header */}
         {isMobile && (
           <div className="sticky top-0 z-10 flex items-center justify-between h-12 bg-background/80 backdrop-blur-sm border-b px-4">
-            <h1 className="text-lg font-bold">Campus Life Hub</h1>
+            <div className="ml-10">
+              <h1 className="text-lg font-bold">Campus Life Hub</h1>
+            </div>
             <div className="flex items-center gap-2">
               <HeaderActions />
               <ThemeToggle />

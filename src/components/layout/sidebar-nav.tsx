@@ -20,6 +20,10 @@ type NavItem = {
   icon: LucideIcon;
 };
 
+interface SidebarNavProps {
+  onNavItemClick?: () => void;
+}
+
 const navItems: NavItem[] = [
   {
     title: "Dashboard",
@@ -68,7 +72,7 @@ const navItems: NavItem[] = [
   },
 ];
 
-export function SidebarNav() {
+export function SidebarNav({ onNavItemClick }: SidebarNavProps) {
   const location = useLocation();
 
   return (
@@ -77,6 +81,7 @@ export function SidebarNav() {
         <Link
           key={item.href}
           to={item.href}
+          onClick={onNavItemClick}
           className={cn(
             "flex items-center px-3 py-2 text-sm font-medium rounded-md",
             location.pathname === item.href

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -17,10 +16,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { Calendar as CalendarIcon, PlusCircle, Pencil, Trash2, Eye, CalendarRange, Image as ImageIcon } from "lucide-react";
+import { PlusCircle, Pencil, Trash2, Eye, CalendarRange, Image as ImageIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CampusActivity } from "@/types";
+import EventCalendarView from "@/components/admin/EventCalendarView";
 
 const FormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -47,7 +47,6 @@ const AdminCampusActivities = () => {
   const [clubId, setClubId] = useState<string | null>(null);
   const [clubName, setClubName] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isSchedulingTab, setIsSchedulingTab] = useState<boolean>(true);
   
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -65,7 +64,7 @@ const AdminCampusActivities = () => {
   useEffect(() => {
     // Check if user is authenticated
     const role = localStorage.getItem("user_role");
-    const email = localStorage.getItem("admin_email");
+    const email = localStorage.getItem("admin_email") || localStorage.getItem("user_email");
     const storedClubId = localStorage.getItem("club_id");
     const storedClubName = localStorage.getItem("club_name");
     
@@ -241,7 +240,7 @@ const AdminCampusActivities = () => {
         </p>
       </div>
       
-      <Tabs defaultValue="list" onValueChange={(value) => setIsSchedulingTab(value === "calendar")}>
+      <Tabs defaultValue="list">
         <TabsList>
           <TabsTrigger value="list">List View</TabsTrigger>
           <TabsTrigger value="calendar">Calendar View</TabsTrigger>
@@ -351,52 +350,11 @@ const AdminCampusActivities = () => {
           </Card>
         </TabsContent>
         <TabsContent value="calendar">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <CalendarRange className="mr-2 h-5 w-5" />
-                Activity Calendar View
-              </CardTitle>
-              <CardDescription>
-                {userRole === "clubAdmin" 
-                  ? `Calendar of activities for ${clubName || "your club"}` 
-                  : "Calendar of all campus activities"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-center p-4">
-                <div className="w-full max-w-md">
-                  <Calendar
-                    mode="single"
-                    selected={new Date()}
-                    className="rounded-md border"
-                  />
-                </div>
-              </div>
-              <div className="mt-4">
-                <h3 className="font-medium mb-2">Upcoming Activities</h3>
-                <div className="space-y-2">
-                  {filteredActivities
-                    .filter(activity => new Date(activity.date) >= new Date())
-                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                    .slice(0, 5)
-                    .map(activity => (
-                      <div key={activity.id} className="flex justify-between items-center p-2 border rounded-md">
-                        <div>
-                          <div className="font-medium">{activity.title}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {format(new Date(activity.date), "PPP")} • {activity.time}
-                          </div>
-                        </div>
-                        <Badge variant="outline" className="capitalize">
-                          {activity.category}
-                        </Badge>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <EventCalendarView 
+            activities={filteredActivities} 
+            userRole={userRole} 
+            clubName={clubName} 
+          />
         </TabsContent>
       </Tabs>
       
