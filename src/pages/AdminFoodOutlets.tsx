@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Plus, Trash2, Edit, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
-import { FoodOutlet, MenuItem } from "@/types";
+import { FoodOutlet, MenuItem, STORAGE_KEYS } from "@/types";
 
 // Sample initial data
 const initialFoodOutlets: FoodOutlet[] = [
@@ -24,7 +24,10 @@ const initialFoodOutlets: FoodOutlet[] = [
       { id: "1-1", name: "Espresso", category: "Beverages", price: "₹30" },
       { id: "1-2", name: "Sandwich", category: "Food", price: "₹60" },
       { id: "1-3", name: "Muffin", category: "Bakery", price: "₹40" }
-    ]
+    ],
+    type: "Café",
+    cuisine: ["Beverages", "Snacks"],
+    rating: 4.2
   },
   {
     id: "2",
@@ -36,7 +39,10 @@ const initialFoodOutlets: FoodOutlet[] = [
       { id: "2-1", name: "Burger", category: "Fast Food", price: "₹80" },
       { id: "2-2", name: "Pizza", category: "Fast Food", price: "₹150" },
       { id: "2-3", name: "Noodles", category: "Chinese", price: "₹70" }
-    ]
+    ],
+    type: "Food Court",
+    cuisine: ["Fast Food", "Chinese", "Indian"],
+    rating: 4.0
   }
 ];
 
@@ -53,7 +59,10 @@ const AdminFoodOutlets = () => {
     description: "",
     location: "",
     hours: "",
-    menu: []
+    menu: [],
+    type: "Other",
+    cuisine: [],
+    rating: 3.0
   });
   
   const [currentMenuItem, setCurrentMenuItem] = useState<MenuItem>({
@@ -68,16 +77,17 @@ const AdminFoodOutlets = () => {
   
   useEffect(() => {
     // Load data from localStorage or use initial data
-    const storedData = localStorage.getItem("food_outlets_data");
+    const storedData = localStorage.getItem(STORAGE_KEYS.FOOD_OUTLETS);
     if (storedData) {
       setFoodOutlets(JSON.parse(storedData));
     } else {
       setFoodOutlets(initialFoodOutlets);
+      localStorage.setItem(STORAGE_KEYS.FOOD_OUTLETS, JSON.stringify(initialFoodOutlets));
     }
   }, []);
 
   const saveToLocalStorage = (data: FoodOutlet[]) => {
-    localStorage.setItem("food_outlets_data", JSON.stringify(data));
+    localStorage.setItem(STORAGE_KEYS.FOOD_OUTLETS, JSON.stringify(data));
   };
 
   const handleSaveOutlet = () => {
@@ -87,7 +97,10 @@ const AdminFoodOutlets = () => {
       name: currentOutlet.name || "New Outlet",
       description: currentOutlet.description || "Description",
       location: currentOutlet.location || "Location",
-      hours: currentOutlet.hours || "Hours"
+      hours: currentOutlet.hours || "Hours",
+      type: currentOutlet.type || "Other",
+      cuisine: currentOutlet.cuisine || [],
+      rating: currentOutlet.rating || 3.0
     };
     
     if (isEditingOutlet) {
@@ -183,7 +196,10 @@ const AdminFoodOutlets = () => {
       description: "",
       location: "",
       hours: "",
-      menu: []
+      menu: [],
+      type: "Other",
+      cuisine: [],
+      rating: 3.0
     });
     setIsEditingOutlet(false);
   };

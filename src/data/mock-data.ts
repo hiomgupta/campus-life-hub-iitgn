@@ -1,4 +1,3 @@
-
 // Mock data for demonstrations
 
 // Events data
@@ -203,7 +202,12 @@ export const foodOutletsData = [
     type: 'Café',
     cuisine: ['Beverages', 'Snacks', 'Fast Food'],
     description: 'Coffee, tea, sandwiches, and light snacks',
-    rating: 4.2
+    rating: 4.2,
+    menu: [
+      { id: '1-1', name: 'Espresso', category: 'Beverages', price: '₹30' },
+      { id: '1-2', name: 'Cappuccino', category: 'Beverages', price: '₹50' },
+      { id: '1-3', name: 'Sandwich', category: 'Snacks', price: '₹80' }
+    ]
   },
   {
     id: '2',
@@ -213,7 +217,12 @@ export const foodOutletsData = [
     type: 'Food Court',
     cuisine: ['Indian', 'Chinese', 'Continental'],
     description: 'Multiple food stalls serving various cuisines',
-    rating: 4.5
+    rating: 4.5,
+    menu: [
+      { id: '2-1', name: 'Butter Chicken', category: 'Indian', price: '₹150' },
+      { id: '2-2', name: 'Hakka Noodles', category: 'Chinese', price: '₹120' },
+      { id: '2-3', name: 'Pasta', category: 'Continental', price: '₹130' }
+    ]
   },
   {
     id: '3',
@@ -223,7 +232,12 @@ export const foodOutletsData = [
     type: 'Canteen',
     cuisine: ['Indian', 'Fast Food', 'Beverages'],
     description: 'Late-night food options for students',
-    rating: 4.0
+    rating: 4.0,
+    menu: [
+      { id: '3-1', name: 'Maggi', category: 'Snacks', price: '₹40' },
+      { id: '3-2', name: 'Paratha', category: 'Indian', price: '₹60' },
+      { id: '3-3', name: 'Cold Coffee', category: 'Beverages', price: '₹50' }
+    ]
   },
   {
     id: '4',
@@ -233,7 +247,12 @@ export const foodOutletsData = [
     type: 'Lounge',
     cuisine: ['Beverages', 'Light Meals'],
     description: 'Quiet place for faculty members to have meals',
-    rating: 4.3
+    rating: 4.3,
+    menu: [
+      { id: '4-1', name: 'Green Tea', category: 'Beverages', price: '₹25' },
+      { id: '4-2', name: 'Salad', category: 'Healthy', price: '₹90' },
+      { id: '4-3', name: 'Soup', category: 'Light Meals', price: '₹70' }
+    ]
   },
   {
     id: '5',
@@ -243,7 +262,12 @@ export const foodOutletsData = [
     type: 'Juice Bar',
     cuisine: ['Juices', 'Smoothies', 'Healthy Snacks'],
     description: 'Fresh juices and healthy options for fitness enthusiasts',
-    rating: 4.7
+    rating: 4.7,
+    menu: [
+      { id: '5-1', name: 'Mixed Fruit Juice', category: 'Juices', price: '₹60' },
+      { id: '5-2', name: 'Protein Smoothie', category: 'Smoothies', price: '₹90' },
+      { id: '5-3', name: 'Granola Bar', category: 'Healthy Snacks', price: '₹40' }
+    ]
   }
 ];
 

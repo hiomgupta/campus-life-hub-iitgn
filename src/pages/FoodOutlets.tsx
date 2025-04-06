@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Clock, MapPin, Star } from "lucide-react";
 import { foodOutletsData } from "@/data/mock-data";
-import { FoodOutlet } from "@/types";
+import { FoodOutlet, STORAGE_KEYS } from "@/types";
 
 const FoodOutlets = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -15,12 +16,17 @@ const FoodOutlets = () => {
   const [outlets, setOutlets] = useState<FoodOutlet[]>([]);
   
   useEffect(() => {
-    const storedData = localStorage.getItem("food_outlets_data");
+    const storedData = localStorage.getItem(STORAGE_KEYS.FOOD_OUTLETS);
     if (storedData) {
       setOutlets(JSON.parse(storedData));
     } else {
-      setOutlets(foodOutletsData);
-      localStorage.setItem("food_outlets_data", JSON.stringify(foodOutletsData));
+      // Make sure the mock data has menu property
+      const formattedData = foodOutletsData.map(outlet => ({
+        ...outlet,
+        menu: outlet.menu || []
+      }));
+      setOutlets(formattedData);
+      localStorage.setItem(STORAGE_KEYS.FOOD_OUTLETS, JSON.stringify(formattedData));
     }
   }, []);
   
