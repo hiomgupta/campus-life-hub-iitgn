@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { Outlet, useNavigate} from "react-router-dom";
 import { SidebarNav } from "./sidebar-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -12,14 +12,7 @@ import { HeaderActions } from "./header-actions";
 export function MainLayout() {
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const location = useLocation();
-
-  // Close sidebar on route change
-  const closeSidebar = () => {
-    if (sidebarOpen) {
-      setSidebarOpen(false);
-    }
-  };
+  
 
   return (
     <div className="flex min-h-screen">
@@ -27,11 +20,12 @@ export function MainLayout() {
       {!isMobile && (
         <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
           <div className="flex-1 flex flex-col min-h-0 border-r">
+            <SidebarNav>
             <div className="flex items-center h-16 flex-shrink-0 px-4 border-b">
               <h1 className="text-xl font-bold">Campus Life Hub</h1>
             </div>
             <div className="flex-1 flex flex-col overflow-y-auto pt-5 pb-4 px-3">
-              <SidebarNav onNavItemClick={closeSidebar} />
+             <SidebarNav />
             </div>
             <div className="flex items-center justify-between p-4 border-t">
               <ThemeToggle />
