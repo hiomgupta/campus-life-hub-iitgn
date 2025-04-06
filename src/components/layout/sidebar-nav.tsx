@@ -13,6 +13,7 @@ import {
   Users,
   LucideIcon
 } from "lucide-react";
+import { useEffect } from "react";
 
 type NavItem = {
   title: string;
@@ -75,13 +76,27 @@ const navItems: NavItem[] = [
 export function SidebarNav({ onNavItemClick }: SidebarNavProps) {
   const location = useLocation();
 
+  // Force close sidebar on route change
+  useEffect(() => {
+    // This ensures the sidebar is closed when route changes
+    if (onNavItemClick && window.innerWidth < 768) {
+      onNavItemClick();
+    }
+  }, [location.pathname, onNavItemClick]);
+
+  const handleClick = () => {
+    if (onNavItemClick) {
+      onNavItemClick();
+    }
+  };
+
   return (
     <nav className="space-y-1">
       {navItems.map((item) => (
         <Link
           key={item.href}
           to={item.href}
-          onClick={onNavItemClick}
+          onClick={handleClick}
           className={cn(
             "flex items-center px-3 py-2 text-sm font-medium rounded-md",
             location.pathname === item.href

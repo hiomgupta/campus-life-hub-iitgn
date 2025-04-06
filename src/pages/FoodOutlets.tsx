@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,31 +7,40 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Clock, MapPin, Star } from "lucide-react";
 import { foodOutletsData } from "@/data/mock-data";
+import { FoodOutlet } from "@/types";
 
 const FoodOutlets = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [cuisineFilter, setCuisineFilter] = useState("All");
+  const [outlets, setOutlets] = useState<FoodOutlet[]>([]);
   
-  // Get unique cuisines from all outlets
+  useEffect(() => {
+    const storedData = localStorage.getItem("food_outlets_data");
+    if (storedData) {
+      setOutlets(JSON.parse(storedData));
+    } else {
+      setOutlets(foodOutletsData);
+      localStorage.setItem("food_outlets_data", JSON.stringify(foodOutletsData));
+    }
+  }, []);
+  
   const allCuisines = Array.from(
     new Set(
-      foodOutletsData.flatMap(outlet => outlet.cuisine)
+      outlets.flatMap(outlet => outlet.cuisine || [])
     )
   );
   
-  // Filter food outlets based on search and cuisine filter
-  const filteredOutlets = foodOutletsData.filter(outlet => {
+  const filteredOutlets = outlets.filter(outlet => {
     const matchesSearch = outlet.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          outlet.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          outlet.type.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesCuisine = cuisineFilter === "All" || 
-                          outlet.cuisine.some(c => c === cuisineFilter);
+                          (outlet.cuisine && outlet.cuisine.some(c => c === cuisineFilter));
                           
     return matchesSearch && matchesCuisine;
   });
   
-  // Render stars for ratings
   const renderRatingStars = (rating: number) => {
     const stars = [];
     const fullStars = Math.floor(rating);
@@ -147,7 +155,7 @@ const FoodOutlets = () => {
                     
                     <div className="flex flex-wrap gap-1">
                       <Badge variant="outline">{outlet.type}</Badge>
-                      {outlet.cuisine.map(cuisine => (
+                      {outlet.cuisine && outlet.cuisine.map(cuisine => (
                         <Badge 
                           key={cuisine} 
                           variant="secondary"

@@ -37,6 +37,9 @@ export interface FoodOutlet {
   location: string;
   hours: string;
   menu: MenuItem[];
+  type: string;
+  cuisine: string[];
+  rating: number;
 }
 
 export type MessDay = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
@@ -116,3 +119,23 @@ export interface Notification {
   clubId?: string;
   clubName?: string;
 }
+
+// Define consistent localStorage keys for data persistence
+export const STORAGE_KEYS = {
+  CAMPUS_ACTIVITIES: "campus_activities_data",
+  MESS_MENU: "mess_menu_data",
+  FOOD_OUTLETS: "food_outlets_data",
+  BUS_SCHEDULE: "bus_schedule_data",
+  USER_PROFILE: "user_profile_", // append email for individual user profiles
+  EVENT_REGISTRATIONS: "event_registrations",
+  NOTICES: "notices_data",
+  NOTIFICATIONS: "notifications_", // append email for individual user notifications
+  CLUBS: "clubs_data",
+  USER_SESSION: {
+    EMAIL: "user_email",
+    ROLE: "user_role",
+    ADMIN_EMAIL: "admin_email",
+    CLUB_ID: "club_id",
+    CLUB_NAME: "club_name"
+  }
+};
